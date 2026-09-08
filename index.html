@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Finance Dashboard</title>
   
-  <!-- Optimization Tags for Standalone Mobile App -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#f4f7f6">
@@ -20,11 +19,16 @@
     .filter-bar { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
     select, input, button { padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.95rem; }
     
+    /* KPI Summaries Layout */
     .kpi-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
     .kpi-card { background: white; padding: 15px 10px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); text-align: center; }
     .kpi-card h3 { font-size: 0.8rem; color: #666; margin-bottom: 3px; }
-    .kpi-card p { font-size: 1.2rem; font-weight: bold; }
-    .income { color: #27ae60; } .expense { color: #e74c3c; } .savings { color: #2980b9; }
+    .kpi-card p.amount { font-size: 1.2rem; font-weight: bold; }
+    .kpi-card p.sub-text { font-size: 0.7rem; color: #777; margin-top: 4px; }
+
+    .income { color: #27ae60; } 
+    .expense { color: #e74c3c; } 
+    .balance { color: #2980b9; }
 
     .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; }
     .grid-2 { display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 20px; }
@@ -39,24 +43,19 @@
     .edit-btn { background: #f39c12; }
     .delete-btn { background: #e74c3c; margin-left: 2px; }
 
-    /* Desktop View adjustments */
     @media(min-width: 768px) {
       body { padding: 25px; }
       .grid-2 { grid-template-columns: 1fr 1fr; gap: 20px; }
       .kpi-container { gap: 15px; }
       .kpi-card { padding: 20px; }
-      .kpi-card p { font-size: 1.5rem; }
+      .kpi-card p.amount { font-size: 1.5rem; }
+      .kpi-card p.sub-text { font-size: 0.8rem; }
       table { font-size: 0.9rem; }
     }
 
-    /* Mobile Responsive View adjustments */
     @media(max-width: 600px) {
       .card h2 { font-size: 1.1rem; }
-      
-      /* Hide less essential columns on mobile */
       table .col-type, table .col-category { display: none; }
-      
-      /* Adjust cell spacing */
       th, td { padding: 8px 5px; }
     }
   </style>
@@ -84,9 +83,21 @@
 
   <!-- KPI Summaries -->
   <div class="kpi-container">
-    <div class="kpi-card"><h3>Income</h3><p id="kpi-income" class="income">$0</p></div>
-    <div class="kpi-card"><h3>Expense</h3><p id="kpi-expense" class="expense">$0</p></div>
-    <div class="kpi-card"><h3>Save</h3><p id="kpi-savings" class="savings">$0</p></div>
+    <div class="kpi-card">
+      <h3>Total Income</h3>
+      <p id="kpi-income" class="amount income">$0</p>
+      <p id="kpi-deductions" class="sub-text">Less: $0 Exp</p>
+    </div>
+    <div class="kpi-card">
+      <h3>Expenses</h3>
+      <p id="kpi-expense" class="amount expense">$0</p>
+      <p id="kpi-savings-sub" class="sub-text">Saved: $0</p>
+    </div>
+    <div class="kpi-card">
+      <h3>Remaining</h3>
+      <p id="kpi-balance" class="amount balance">$0</p>
+      <p id="kpi-status" class="sub-text">Net Balance</p>
+    </div>
   </div>
 
   <!-- Layout: Form & Chart -->
@@ -176,10 +187,8 @@
       return matchYear && matchMonth;
     });
 
-    // Sort entries descending by date
     filtered.sort((a,b) => new Date(b.date) - new Date(a.date));
 
-    // Calculate totals
     let inc = 0, exp = 0, sav = 0;
     const catTotals = {};
 
@@ -193,9 +202,19 @@
       if (d.type === "Savings") sav += amt;
     });
 
+    // Subtraction Logic: Net Remaining = Income - Expenses - Savings
+    const remainingBalance = inc - exp - sav;
+
+    // Render KPI Cards & Subtitles
     document.getElementById("kpi-income").innerText = `$${Math.round(inc)}`;
+    document.getElementById("kpi-deductions").innerText = `-${Math.round(exp)} Exp, -${Math.round(sav)} Sav`;
+
     document.getElementById("kpi-expense").innerText = `$${Math.round(exp)}`;
-    document.getElementById("kpi-savings").innerText = `$${Math.round(sav)}`;
+    document.getElementById("kpi-savings-sub").innerText = `Saved: $${Math.round(sav)}`;
+
+    const balanceEl = document.getElementById("kpi-balance");
+    balanceEl.innerText = `$${Math.round(remainingBalance)}`;
+    balanceEl.style.color = remainingBalance >= 0 ? "#2980b9" : "#e74c3c"; // Turn red if negative
 
     renderTable(filtered);
     renderChart(catTotals);
@@ -203,7 +222,6 @@
 
   function renderTable(data) {
     const tbody = document.getElementById("table-body");
-    // Format date compactly for mobile
     tbody.innerHTML = data.map(d => {
       const dt = new Date(d.date);
       const shortDate = `${dt.getMonth()+1}/${dt.getDate()}`;
@@ -228,7 +246,6 @@
     const ctx = document.getElementById("expenseChart").getContext("2d");
     if (chartInstance) chartInstance.destroy();
 
-    // Hide chart if no expenses exist in the filtered range
     if(Object.keys(catTotals).length === 0) {
       document.getElementById("expenseChart").style.display = 'none';
       return;
@@ -277,7 +294,6 @@
       document.getElementById("edit-row-id").value = "";
       document.getElementById("form-title").innerText = "Add Entry";
       
-      // Delay reload slightly to give GAS time to write
       setTimeout(loadData, 1000);
     } catch(err) {
       console.error("Submission failed:", err);
@@ -298,7 +314,6 @@
     document.getElementById("txn-amount").value = item.amount;
     document.getElementById("txn-notes").value = item.notes;
     document.getElementById("form-title").innerText = "Edit Entry";
-    // Scroll to top form
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
