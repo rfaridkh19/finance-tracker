@@ -32,7 +32,6 @@
     .income { color: #27ae60; } 
     .expense { color: #e74c3c; } 
     .balance { color: #2980b9; }
-    .loan-text { color: #d35400; }
 
     /* Loan Summary Box */
     .loan-box { background: #fef9e7; border-left: 4px solid #f39c12; padding: 12px; border-radius: 6px; margin-bottom: 20px; display: flex; justify-content: space-around; font-size: 0.85rem; }
@@ -68,7 +67,6 @@
       th, td { padding: 8px 5px; }
     }
 
-    /* Print / PDF Styling */
     @media print {
       body { background: white; padding: 0; }
       .filter-bar, form, .action-btn-cell, .btn-pdf, header button { display: none !important; }
@@ -85,8 +83,20 @@
     <button class="btn-pdf" onclick="window.print()">🖨️ Export PDF / Print</button>
   </header>
 
-  <!-- Filters & Sorting -->
+  <!-- Filters, Currency & Sorting -->
   <div class="filter-bar">
+    <!-- Currency Selector -->
+    <select id="currency-select" onchange="renderDashboard()">
+      <option value="$">$ (USD)</option>
+      <option value="€">€ (EUR)</option>
+      <option value="£">£ (GBP)</option>
+      <option value="؋">؋ (AFN)</option>
+      <option value="₹">₹ (INR)</option>
+      <option value="A$">A$ (AUD)</option>
+      <option value="C$">C$ (CAD)</option>
+      <option value="CHF">CHF</option>
+    </select>
+
     <select id="year-filter" onchange="renderDashboard()"></select>
     <select id="month-filter" onchange="renderDashboard()">
       <option value="ALL">All Months</option>
@@ -175,7 +185,7 @@
           <th>Date</th>
           <th class="col-type">Type</th>
           <th class="col-category">Category</th>
-          <th>$</th>
+          <th id="th-amount">Amount</th>
           <th>Notes</th>
           <th class="action-btn-cell">Acts</th>
         </tr>
@@ -191,7 +201,6 @@
   let rawData = [];
   let chartInstance = null;
 
-  // Helper function to set date input to today
   function setTodayDate() {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById("txn-date").value = today;
@@ -245,9 +254,13 @@
   }
 
   function renderDashboard() {
+    const curr = document.getElementById("currency-select").value;
     const selectedYear = document.getElementById("year-filter").value;
     const selectedMonth = document.getElementById("month-filter").value;
     const sortOrder = document.getElementById("sort-order").value;
+
+    // Update Table Column Header with Currency Symbol
+    document.getElementById("th-amount").innerText = `Amount (${curr})`;
 
     const filtered = rawData.filter(d => {
       const dt = new Date(d.date);
@@ -256,7 +269,6 @@
       return matchYear && matchMonth;
     });
 
-    // Sort order
     filtered.sort((a,b) => {
       const dA = new Date(a.date), dB = new Date(b.date);
       return sortOrder === "NEWEST" ? dB - dA : dA - dB;
@@ -279,24 +291,25 @@
 
     const remainingBalance = inc - exp - sav - loanGiven + loanTaken;
 
-    document.getElementById("kpi-income").innerText = `$${Math.round(inc)}`;
-    document.getElementById("kpi-deductions").innerText = `-${Math.round(exp)} Exp, -${Math.round(sav)} Sav`;
+    // Apply currency dynamically
+    document.getElementById("kpi-income").innerText = `${curr}${Math.round(inc)}`;
+    document.getElementById("kpi-deductions").innerText = `-${curr}${Math.round(exp)} Exp, -${curr}${Math.round(sav)} Sav`;
 
-    document.getElementById("kpi-expense").innerText = `$${Math.round(exp)}`;
-    document.getElementById("kpi-savings-sub").innerText = `Saved: $${Math.round(sav)}`;
+    document.getElementById("kpi-expense").innerText = `${curr}${Math.round(exp)}`;
+    document.getElementById("kpi-savings-sub").innerText = `Saved: ${curr}${Math.round(sav)}`;
 
-    document.getElementById("loan-given").innerText = `$${Math.round(loanGiven)}`;
-    document.getElementById("loan-taken").innerText = `$${Math.round(loanTaken)}`;
+    document.getElementById("loan-given").innerText = `${curr}${Math.round(loanGiven)}`;
+    document.getElementById("loan-taken").innerText = `${curr}${Math.round(loanTaken)}`;
 
     const balanceEl = document.getElementById("kpi-balance");
-    balanceEl.innerText = `$${Math.round(remainingBalance)}`;
+    balanceEl.innerText = `${curr}${Math.round(remainingBalance)}`;
     balanceEl.style.color = remainingBalance >= 0 ? "#2980b9" : "#e74c3c";
 
-    renderTable(filtered);
-    renderChart(catTotals);
+    renderTable(filtered, curr);
+    renderChart(catTotals, curr);
   }
 
-  function renderTable(data) {
+  function renderTable(data, curr) {
     const tbody = document.getElementById("table-body");
     tbody.innerHTML = data.map(d => {
       const dt = new Date(d.date);
@@ -308,7 +321,7 @@
         <td title="${d.date}">${shortDate}</td>
         <td class="col-type">${d.type}</td>
         <td class="col-category">${d.category}</td>
-        <td>$${parseFloat(d.amount).toFixed(2)}</td>
+        <td>${curr}${parseFloat(d.amount).toFixed(2)}</td>
         <td title="${d.notes || ''}">${shortNotes}</td>
         <td class="action-btn-cell">
           <button class="action-btn edit-btn" onclick="editRow(${d.rowId})" title="Edit">✎</button>
@@ -318,7 +331,7 @@
     `}).join("");
   }
 
-  function renderChart(catTotals) {
+  function renderChart(catTotals, curr) {
     const ctx = document.getElementById("expenseChart").getContext("2d");
     if (chartInstance) chartInstance.destroy();
 
@@ -340,7 +353,16 @@
       },
       options: { 
         animation: { animateScale: true, animateRotate: true },
-        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 8, font: {size: 11} } } }
+        plugins: { 
+          legend: { position: 'bottom', labels: { boxWidth: 12, padding: 8, font: {size: 11} } },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return ` ${context.label}: ${curr}${context.raw.toFixed(2)}`;
+              }
+            }
+          }
+        }
       }
     });
   }
@@ -369,7 +391,7 @@
       document.getElementById("entry-form").reset();
       document.getElementById("edit-row-id").value = "";
       document.getElementById("form-title").innerText = "Add Entry";
-      setTodayDate(); // Auto re-select today's date
+      setTodayDate();
       
       setTimeout(loadData, 1000);
     } catch(err) {
