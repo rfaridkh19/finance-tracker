@@ -89,9 +89,16 @@
     <select id="currency-select" onchange="renderDashboard()">
       <option value="€" selected>€ (EUR)</option>
       <option value="$">$ (USD)</option>
-    <select>
+      <option value="£">£ (GBP)</option>
+      <option value="؋">؋ (AFN)</option>
+      <option value="₹">₹ (INR)</option>
+      <option value="A$">A$ (AUD)</option>
+      <option value="C$">C$ (CAD)</option>
+      <option value="CHF">CHF</option>
+    </select>
 
     <select id="year-filter" onchange="renderDashboard()"></select>
+    
     <select id="month-filter" onchange="renderDashboard()">
       <option value="ALL">All Months</option>
       <option value="0">Jan</option><option value="1">Feb</option>
@@ -101,6 +108,12 @@
       <option value="8">Sep</option><option value="9">Oct</option>
       <option value="10">Nov</option><option value="11">Dec</option>
     </select>
+
+    <!-- Category Filter -->
+    <select id="category-filter" onchange="renderDashboard()">
+      <option value="ALL">All Categories</option>
+    </select>
+
     <select id="sort-order" onchange="renderDashboard()">
       <option value="NEWEST">Sort: Newest First</option>
       <option value="OLDEST">Sort: Oldest First</option>
@@ -111,25 +124,25 @@
   <div class="kpi-container">
     <div class="kpi-card">
       <h3>Total Income</h3>
-      <p id="kpi-income" class="amount income">$0</p>
-      <p id="kpi-deductions" class="sub-text">Less: $0 Exp</p>
+      <p id="kpi-income" class="amount income">€0</p>
+      <p id="kpi-deductions" class="sub-text">Less: €0 Exp</p>
     </div>
     <div class="kpi-card">
       <h3>Expenses</h3>
-      <p id="kpi-expense" class="amount expense">$0</p>
-      <p id="kpi-savings-sub" class="sub-text">Saved: $0</p>
+      <p id="kpi-expense" class="amount expense">€0</p>
+      <p id="kpi-savings-sub" class="sub-text">Saved: €0</p>
     </div>
     <div class="kpi-card">
       <h3>Remaining</h3>
-      <p id="kpi-balance" class="amount balance">$0</p>
+      <p id="kpi-balance" class="amount balance">€0</p>
       <p id="kpi-status" class="sub-text">Net Balance</p>
     </div>
   </div>
 
   <!-- Loan Tracker Summary -->
   <div class="loan-box">
-    <div>Owed to You (Loans Given)<strong id="loan-given" class="income">$0</strong></div>
-    <div>You Owe (Loans Taken)<strong id="loan-taken" class="expense">$0</strong></div>
+    <div>Owed to You (Loans Given)<strong id="loan-given" class="income">€0</strong></div>
+    <div>You Owe (Loans Taken)<strong id="loan-taken" class="expense">€0</strong></div>
   </div>
 
   <!-- Entry Form & Chart -->
@@ -223,12 +236,21 @@
 
   function populateCategories() {
     const catSelect = document.getElementById("txn-category");
+    const filterCatSelect = document.getElementById("category-filter");
+    
     const existingCats = [...new Set(rawData.map(d => d.category))].filter(Boolean);
     const defaults = ["Food", "Housing", "Transport", "Salary", "Loans / Debt", "Other"];
     const allCats = [...new Set([...defaults, ...existingCats])];
 
+    // Populate Form Category Dropdown
     catSelect.innerHTML = allCats.map(c => `<option value="${c}">${c}</option>`).join("") + 
       `<option value="NEW">+ Add New Category...</option>`;
+
+    // Populate Category Filter Dropdown
+    const currentFilterVal = filterCatSelect.value;
+    filterCatSelect.innerHTML = `<option value="ALL">All Categories</option>` + 
+      allCats.map(c => `<option value="${c}">${c}</option>`).join("");
+    filterCatSelect.value = currentFilterVal || "ALL";
   }
 
   function handleCategoryChange(selectEl) {
@@ -251,16 +273,18 @@
     const curr = document.getElementById("currency-select").value;
     const selectedYear = document.getElementById("year-filter").value;
     const selectedMonth = document.getElementById("month-filter").value;
+    const selectedCategory = document.getElementById("category-filter").value;
     const sortOrder = document.getElementById("sort-order").value;
 
-    // Update Table Column Header with Currency Symbol
     document.getElementById("th-amount").innerText = `Amount (${curr})`;
 
+    // Filter Logic
     const filtered = rawData.filter(d => {
       const dt = new Date(d.date);
       const matchYear = dt.getFullYear() == selectedYear;
       const matchMonth = selectedMonth === "ALL" || dt.getMonth() == selectedMonth;
-      return matchYear && matchMonth;
+      const matchCategory = selectedCategory === "ALL" || d.category === selectedCategory;
+      return matchYear && matchMonth && matchCategory;
     });
 
     filtered.sort((a,b) => {
@@ -268,32 +292,42 @@
       return sortOrder === "NEWEST" ? dB - dA : dA - dB;
     });
 
-    let inc = 0, exp = 0, sav = 0, loanGiven = 0, loanTaken = 0;
+    let inc = 0, exp = 0, sav = 0;
+    let totalLoansGiven = 0, totalLoansTaken = 0;
+    let loanRepaidToMe = 0, loanRepaidByMe = 0;
     const catTotals = {};
 
     filtered.forEach(d => {
       const amt = parseFloat(d.amount) || 0;
-      if (d.type === "Income") inc += amt;
+      const isLoanCategory = (d.category === "Loans / Debt");
+
+      if (d.type === "Income") {
+        inc += amt;
+        if (isLoanCategory) loanRepaidToMe += amt;
+      }
       if (d.type === "Expense") {
         exp += amt;
-        catTotals[d.category] = (catTotals[d.category] || 0) + amt;
+        if (isLoanCategory) loanRepaidByMe += amt;
+        else catTotals[d.category] = (catTotals[d.category] || 0) + amt;
       }
       if (d.type === "Savings") sav += amt;
-      if (d.type === "Loan Given") loanGiven += amt;
-      if (d.type === "Loan Taken") loanTaken += amt;
+      if (d.type === "Loan Given") totalLoansGiven += amt;
+      if (d.type === "Loan Taken") totalLoansTaken += amt;
     });
 
-    const remainingBalance = inc - exp - sav - loanGiven + loanTaken;
+    const netOwedToYou = Math.max(0, totalLoansGiven - loanRepaidToMe);
+    const netYouOwe = Math.max(0, totalLoansTaken - loanRepaidByMe);
 
-    // Apply currency dynamically
+    const remainingBalance = inc - exp - sav - totalLoansGiven + totalLoansTaken;
+
     document.getElementById("kpi-income").innerText = `${curr}${Math.round(inc)}`;
     document.getElementById("kpi-deductions").innerText = `-${curr}${Math.round(exp)} Exp, -${curr}${Math.round(sav)} Sav`;
 
     document.getElementById("kpi-expense").innerText = `${curr}${Math.round(exp)}`;
     document.getElementById("kpi-savings-sub").innerText = `Saved: ${curr}${Math.round(sav)}`;
 
-    document.getElementById("loan-given").innerText = `${curr}${Math.round(loanGiven)}`;
-    document.getElementById("loan-taken").innerText = `${curr}${Math.round(loanTaken)}`;
+    document.getElementById("loan-given").innerText = `${curr}${Math.round(netOwedToYou)}`;
+    document.getElementById("loan-taken").innerText = `${curr}${Math.round(netYouOwe)}`;
 
     const balanceEl = document.getElementById("kpi-balance");
     balanceEl.innerText = `${curr}${Math.round(remainingBalance)}`;
