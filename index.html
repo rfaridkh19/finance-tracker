@@ -14,8 +14,16 @@
     * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
     body { background: #f4f7f6; padding: 15px; color: #333; }
     .container { max-width: 1000px; margin: 0 auto; }
-    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
     
+    /* Navigation Tabs */
+    .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; }
+    .tab-btn { padding: 10px 20px; font-weight: bold; background: transparent; border: none; border-bottom: 3px solid transparent; cursor: pointer; font-size: 1rem; color: #666; }
+    .tab-btn.active { border-bottom-color: #27ae60; color: #27ae60; }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
     .filter-bar { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
     select, input, button { padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.95rem; }
     
@@ -34,9 +42,9 @@
     .balance { color: #2980b9; }
 
     /* Loan Summary Box */
-    .loan-box { background: #fef9e7; border-left: 4px solid #f39c12; padding: 12px; border-radius: 6px; margin-bottom: 20px; display: flex; justify-content: space-around; font-size: 0.85rem; }
+    .loan-box { background: #fef9e7; border-left: 4px solid #f39c12; padding: 15px; border-radius: 6px; margin-bottom: 20px; display: flex; justify-content: space-around; font-size: 0.9rem; }
     .loan-box div { text-align: center; }
-    .loan-box strong { display: block; font-size: 1rem; margin-top: 2px; }
+    .loan-box strong { display: block; font-size: 1.2rem; margin-top: 4px; }
 
     .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; }
     .grid-2 { display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 20px; }
@@ -69,7 +77,7 @@
 
     @media print {
       body { background: white; padding: 0; }
-      .filter-bar, form, .action-btn-cell, .btn-pdf, header button { display: none !important; }
+      .nav-tabs, .filter-bar, form, .action-btn-cell, .btn-pdf, header button { display: none !important; }
       .card { box-shadow: none; border: 1px solid #ccc; page-break-inside: avoid; }
       table .col-type, table .col-category { display: table-cell !important; }
     }
@@ -83,9 +91,14 @@
     <button class="btn-pdf" onclick="window.print()">🖨️ Export PDF / Print</button>
   </header>
 
-  <!-- Filters, Currency & Sorting -->
+  <!-- Tab Navigation Bar -->
+  <div class="nav-tabs">
+    <button class="tab-btn active" onclick="switchTab('dashboard-tab', this)">📊 Dashboard</button>
+    <button class="tab-btn" onclick="switchTab('loans-tab', this)">🤝 Loans & Notes</button>
+  </div>
+
+  <!-- Global Filters (Currency) -->
   <div class="filter-bar">
-    <!-- Currency Selector -->
     <select id="currency-select" onchange="renderDashboard()">
       <option value="€" selected>€ (EUR)</option>
       <option value="$">$ (USD)</option>
@@ -96,117 +109,156 @@
       <option value="C$">C$ (CAD)</option>
       <option value="CHF">CHF</option>
     </select>
-
-    <select id="year-filter" onchange="renderDashboard()"></select>
-    
-    <select id="month-filter" onchange="renderDashboard()">
-      <option value="ALL">All Months</option>
-      <option value="0">Jan</option><option value="1">Feb</option>
-      <option value="2">Mar</option><option value="3">Apr</option>
-      <option value="4">May</option><option value="5">Jun</option>
-      <option value="6">Jul</option><option value="7">Aug</option>
-      <option value="8">Sep</option><option value="9">Oct</option>
-      <option value="10">Nov</option><option value="11">Dec</option>
-    </select>
-
-    <!-- Category Filter -->
-    <select id="category-filter" onchange="renderDashboard()">
-      <option value="ALL">All Categories</option>
-    </select>
-
-    <select id="sort-order" onchange="renderDashboard()">
-      <option value="NEWEST">Sort: Newest First</option>
-      <option value="OLDEST">Sort: Oldest First</option>
-    </select>
   </div>
 
-  <!-- Main KPI Summaries -->
-  <div class="kpi-container">
-    <div class="kpi-card">
-      <h3>Total Income</h3>
-      <p id="kpi-income" class="amount income">€0</p>
-      <p id="kpi-deductions" class="sub-text">Less: €0 Exp</p>
+  <!-- TAB 1: DASHBOARD CONTENT -->
+  <div id="dashboard-tab" class="tab-content active">
+    <!-- Filters -->
+    <div class="filter-bar">
+      <select id="year-filter" onchange="renderDashboard()"></select>
+      <select id="month-filter" onchange="renderDashboard()">
+        <option value="ALL">All Months</option>
+        <option value="0">Jan</option><option value="1">Feb</option>
+        <option value="2">Mar</option><option value="3">Apr</option>
+        <option value="4">May</option><option value="5">Jun</option>
+        <option value="6">Jul</option><option value="7">Aug</option>
+        <option value="8">Sep</option><option value="9">Oct</option>
+        <option value="10">Nov</option><option value="11">Dec</option>
+      </select>
+      <select id="category-filter" onchange="renderDashboard()">
+        <option value="ALL">All Categories</option>
+      </select>
+      <select id="sort-order" onchange="renderDashboard()">
+        <option value="NEWEST">Sort: Newest First</option>
+        <option value="OLDEST">Sort: Oldest First</option>
+      </select>
     </div>
-    <div class="kpi-card">
-      <h3>Expenses</h3>
-      <p id="kpi-expense" class="amount expense">€0</p>
-      <p id="kpi-savings-sub" class="sub-text">Saved: €0</p>
-    </div>
-    <div class="kpi-card">
-      <h3>Remaining</h3>
-      <p id="kpi-balance" class="amount balance">€0</p>
-      <p id="kpi-status" class="sub-text">Net Balance</p>
-    </div>
-  </div>
 
-  <!-- Loan Tracker Summary -->
-  <div class="loan-box">
-    <div>Owed to You (Loans Given)<strong id="loan-given" class="income">€0</strong></div>
-    <div>You Owe (Loans Taken)<strong id="loan-taken" class="expense">€0</strong></div>
-  </div>
+    <!-- Main KPI Summaries -->
+    <div class="kpi-container">
+      <div class="kpi-card">
+        <h3>Total Income</h3>
+        <p id="kpi-income" class="amount income">€0</p>
+        <p id="kpi-deductions" class="sub-text">Less: €0 Exp</p>
+      </div>
+      <div class="kpi-card">
+        <h3>Expenses</h3>
+        <p id="kpi-expense" class="amount expense">€0</p>
+        <p id="kpi-savings-sub" class="sub-text">Saved: €0</p>
+      </div>
+      <div class="kpi-card">
+        <h3>Remaining</h3>
+        <p id="kpi-balance" class="amount balance">€0</p>
+        <p id="kpi-status" class="sub-text">Net Balance</p>
+      </div>
+    </div>
 
-  <!-- Entry Form & Chart -->
-  <div class="grid-2">
+    <!-- Loan Summary Box -->
+    <div class="loan-box">
+      <div>Owed to You (Loans Given)<strong id="loan-given" class="income">€0</strong></div>
+      <div>You Owe (Loans Taken)<strong id="loan-taken" class="expense">€0</strong></div>
+    </div>
+
+    <!-- Entry Form & Chart -->
+    <div class="grid-2">
+      <div class="card">
+        <h2 id="form-title">Add Entry</h2>
+        <form id="entry-form">
+          <input type="hidden" id="edit-row-id">
+          <input type="date" id="txn-date" required>
+          
+          <select id="txn-type">
+            <option value="Expense">Expense</option>
+            <option value="Income">Income</option>
+            <option value="Savings">Savings</option>
+            <option value="Loan Given">Loan Given (Money You Lent)</option>
+            <option value="Loan Taken">Loan Taken (Money You Borrowed)</option>
+          </select>
+
+          <select id="txn-category" onchange="handleCategoryChange(this)">
+            <option value="Food">Food</option>
+            <option value="Housing">Housing</option>
+            <option value="Transport">Transport</option>
+            <option value="Salary">Salary</option>
+            <option value="Loans / Debt">Loans / Debt</option>
+            <option value="Other">Other</option>
+            <option value="NEW">+ Add New Category...</option>
+          </select>
+
+          <input type="number" step="0.01" id="txn-amount" placeholder="Amount" required>
+          <input type="text" id="txn-notes" placeholder="Notes (e.g. Person Name / Detail)">
+          <button type="submit" id="save-btn" class="submit-btn">Save Entry</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Expense Breakdown</h2>
+        <canvas id="expenseChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Data Table -->
     <div class="card">
-      <h2 id="form-title">Add Entry</h2>
-      <form id="entry-form">
-        <input type="hidden" id="edit-row-id">
-        <input type="date" id="txn-date" required>
-        
-        <select id="txn-type">
-          <option value="Expense">Expense</option>
-          <option value="Income">Income</option>
-          <option value="Savings">Savings</option>
-          <option value="Loan Given">Loan Given (Money You Lent)</option>
-          <option value="Loan Taken">Loan Taken (Money You Borrowed)</option>
-        </select>
+      <h2>Transactions</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th class="col-type">Type</th>
+            <th class="col-category">Category</th>
+            <th id="th-amount">Amount</th>
+            <th>Notes</th>
+            <th class="action-btn-cell">Acts</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+  </div>
 
-        <select id="txn-category" onchange="handleCategoryChange(this)">
-          <option value="Food">Food</option>
-          <option value="Housing">Housing</option>
-          <option value="Transport">Transport</option>
-          <option value="Salary">Salary</option>
-          <option value="Loans / Debt">Loans / Debt</option>
-          <option value="Other">Other</option>
-          <option value="NEW">+ Add New Category...</option>
-        </select>
-
-        <input type="number" step="0.01" id="txn-amount" placeholder="Amount" required>
-        <input type="text" id="txn-notes" placeholder="Notes (e.g. Person Name / Detail)">
-        <button type="submit" id="save-btn" class="submit-btn">Save Entry</button>
-      </form>
+  <!-- TAB 2: LOANS & NOTES TAB CONTENT -->
+  <div id="loans-tab" class="tab-content">
+    <div class="loan-box">
+      <div>Total Owed to You<strong id="tab-loan-given" class="income">€0</strong></div>
+      <div>Total You Owe<strong id="tab-loan-taken" class="expense">€0</strong></div>
     </div>
 
     <div class="card">
-      <h2>Expense Breakdown</h2>
-      <canvas id="expenseChart"></canvas>
+      <h2>🔍 Search Loan Notes</h2>
+      <input type="text" id="loan-search" placeholder="Filter by person's name or note..." onkeyup="renderLoansTab()" style="width: 100%; margin-top: 10px;">
+    </div>
+
+    <div class="card">
+      <h2>Loan Transactions & Notes</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Type</th>
+            <th>Amount</th>
+            <th>Notes / Person</th>
+            <th class="action-btn-cell">Acts</th>
+          </tr>
+        </thead>
+        <tbody id="loan-table-body"></tbody>
+      </table>
     </div>
   </div>
 
-  <!-- Data Table -->
-  <div class="card">
-    <h2>Transactions</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th class="col-type">Type</th>
-          <th class="col-category">Category</th>
-          <th id="th-amount">Amount</th>
-          <th>Notes</th>
-          <th class="action-btn-cell">Acts</th>
-        </tr>
-      </thead>
-      <tbody id="table-body"></tbody>
-    </table>
-  </div>
 </div>
 
 <script>
   // PASTE YOUR DEPLOYED GOOGLE WEB APP URL HERE:
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyrV7xOSGEy9KLZhWeWAigBajrIPAhj8Dh_iVKlwZf1dMbMSpWXsXwAy1asfYhe09Td3A/exec";
+  const SCRIPT_URL = "YOUR_NEW_WEB_APP_URL_HERE";
   let rawData = [];
   let chartInstance = null;
+
+  function switchTab(tabId, btnEl) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    btnEl.classList.add('active');
+  }
 
   function setTodayDate() {
     const today = new Date().toISOString().split('T')[0];
@@ -242,11 +294,9 @@
     const defaults = ["Food", "Housing", "Transport", "Salary", "Loans / Debt", "Other"];
     const allCats = [...new Set([...defaults, ...existingCats])];
 
-    // Populate Form Category Dropdown
     catSelect.innerHTML = allCats.map(c => `<option value="${c}">${c}</option>`).join("") + 
       `<option value="NEW">+ Add New Category...</option>`;
 
-    // Populate Category Filter Dropdown
     const currentFilterVal = filterCatSelect.value;
     filterCatSelect.innerHTML = `<option value="ALL">All Categories</option>` + 
       allCats.map(c => `<option value="${c}">${c}</option>`).join("");
@@ -278,7 +328,6 @@
 
     document.getElementById("th-amount").innerText = `Amount (${curr})`;
 
-    // Filter Logic
     const filtered = rawData.filter(d => {
       const dt = new Date(d.date);
       const matchYear = dt.getFullYear() == selectedYear;
@@ -328,6 +377,10 @@
 
     document.getElementById("loan-given").innerText = `${curr}${Math.round(netOwedToYou)}`;
     document.getElementById("loan-taken").innerText = `${curr}${Math.round(netYouOwe)}`;
+    
+    // Also update Loans Tab summary
+    document.getElementById("tab-loan-given").innerText = `${curr}${Math.round(netOwedToYou)}`;
+    document.getElementById("tab-loan-taken").innerText = `${curr}${Math.round(netYouOwe)}`;
 
     const balanceEl = document.getElementById("kpi-balance");
     balanceEl.innerText = `${curr}${Math.round(remainingBalance)}`;
@@ -335,6 +388,7 @@
 
     renderTable(filtered, curr);
     renderChart(catTotals, curr);
+    renderLoansTab();
   }
 
   function renderTable(data, curr) {
@@ -353,6 +407,34 @@
         <td title="${d.notes || ''}">${shortNotes}</td>
         <td class="action-btn-cell">
           <button class="action-btn edit-btn" onclick="editRow(${d.rowId})" title="Edit">✎</button>
+          <button class="action-btn delete-btn" onclick="deleteRow(${d.rowId})" title="Delete">✕</button>
+        </td>
+      </tr>
+    `}).join("");
+  }
+
+  function renderLoansTab() {
+    const curr = document.getElementById("currency-select").value;
+    const searchFilter = (document.getElementById("loan-search")?.value || "").toLowerCase();
+    
+    const loanEntries = rawData.filter(d => 
+      (d.type === "Loan Given" || d.type === "Loan Taken" || d.category === "Loans / Debt") &&
+      (d.notes || "").toLowerCase().includes(searchFilter)
+    );
+
+    const tbody = document.getElementById("loan-table-body");
+    tbody.innerHTML = loanEntries.map(d => {
+      const dt = new Date(d.date);
+      const shortDate = !isNaN(dt) ? `${dt.getMonth()+1}/${dt.getDate()}/${dt.getFullYear()}` : d.date;
+
+      return `
+      <tr>
+        <td>${shortDate}</td>
+        <td>${d.type}</td>
+        <td>${curr}${parseFloat(d.amount).toFixed(2)}</td>
+        <td>${d.notes || '-'}</td>
+        <td class="action-btn-cell">
+          <button class="action-btn edit-btn" onclick="editRow(${d.rowId}); switchTab('dashboard-tab', document.querySelectorAll('.tab-btn')[0]);" title="Edit">✎</button>
           <button class="action-btn delete-btn" onclick="deleteRow(${d.rowId})" title="Delete">✕</button>
         </td>
       </tr>
