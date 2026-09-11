@@ -49,6 +49,7 @@
     body.rtl .loan-box { border-left: none; border-right: 4px solid #f39c12; }
     .loan-box div { text-align: center; }
     .loan-box strong { display: block; font-size: 1.2rem; margin-top: 4px; }
+    .loan-note-tag { font-size: 0.7rem; color: #888; font-weight: normal; }
 
     .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; }
     .grid-2 { display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 20px; }
@@ -155,8 +156,15 @@
 
     <!-- Loan Summary Box -->
     <div class="loan-box">
-      <div><span id="lbl-owed-you">Owed to You (Loans Given)</span><strong id="loan-given" class="income">0</strong></div>
-      <div><span id="lbl-you-owe">You Owe (Loans Taken)</span><strong id="loan-taken" class="expense">0</strong></div>
+      <div>
+        <span id="lbl-owed-you">Owed to You (Loans Given)</span>
+        <strong id="loan-given" class="income">0</strong>
+      </div>
+      <div>
+        <span id="lbl-you-owe">You Owe (Loans Taken)</span>
+        <strong id="loan-taken" style="color: #666;">0</strong>
+        <span class="loan-note-tag">(Notes Sheet)</span>
+      </div>
     </div>
 
     <!-- Entry Form & Chart -->
@@ -172,7 +180,7 @@
             <option value="Income" data-lang-en="Income" data-lang-fa="عواید / درآمد">Income</option>
             <option value="Savings" data-lang-en="Savings" data-lang-fa="پس‌انداز">Savings</option>
             <option value="Loan Given" data-lang-en="Loan Given (Money You Lent)" data-lang-fa="قرض داده شده (طلب شما)">Loan Given (Money You Lent)</option>
-            <option value="Loan Taken" data-lang-en="Loan Taken (Money You Borrowed)" data-lang-fa="قرض گرفته شده (بدهی شما)">Loan Taken (Money You Borrowed)</option>
+            <option value="Loan Taken" data-lang-en="Loan Taken (Saved to Notes Sheet)" data-lang-fa="قرض گرفته شده (ذخیره در شیت یادداشت)">Loan Taken (Saved to Notes Sheet)</option>
           </select>
 
           <select id="txn-category" onchange="handleCategoryChange(this)">
@@ -219,8 +227,14 @@
   <!-- TAB 2: LOANS & NOTES TAB CONTENT -->
   <div id="loans-tab" class="tab-content">
     <div class="loan-box">
-      <div><span id="lbl-tab-owed-you">Total Owed to You</span><strong id="tab-loan-given" class="income">0</strong></div>
-      <div><span id="lbl-tab-you-owe">Total You Owe</span><strong id="tab-loan-taken" class="expense">0</strong></div>
+      <div>
+        <span id="lbl-tab-owed-you">Total Owed to You (Sheet1)</span>
+        <strong id="tab-loan-given" class="income">0</strong>
+      </div>
+      <div>
+        <span id="lbl-tab-you-owe">Total You Owe (Notes Sheet)</span>
+        <strong id="tab-loan-taken" style="color: #666;">0</strong>
+      </div>
     </div>
 
     <div class="card" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
@@ -259,8 +273,8 @@
     <form id="modal-form">
       <input type="date" id="m-date" required>
       <select id="m-type">
-        <option value="Loan Given">Loan Given (Money You Lent / طلب شما)</option>
-        <option value="Loan Taken">Loan Taken (Money You Borrowed / بدهی شما)</option>
+        <option value="Loan Given">Loan Given (Money You Lent / Sheet1)</option>
+        <option value="Loan Taken">Loan Taken (Notes Sheet)</option>
         <option value="Expense">Loan Repaid / پرداخت قرض</option>
         <option value="Income">Loan Received Back / دریافت طلب</option>
       </select>
@@ -275,8 +289,7 @@
 </div>
 
 <script>
-  // PASTE YOUR DEPLOYED GOOGLE WEB APP URL HERE:
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyrV7xOSGEy9KLZhWeWAigBajrIPAhj8Dh_iVKlwZf1dMbMSpWXsXwAy1asfYhe09Td3A/exec";
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxTtX2HKj_2k2sCJufnfv3LydkZJiY3IlLLde8853jBG6oeR09_sp5zcKxJtnJnCHxK0g/exec";
   let rawData = [];
   let chartInstance = null;
   let isPersian = false;
@@ -304,7 +317,7 @@
       exp: "مصارف",
       rem: "باقیمانده",
       owedYou: "طلب شما (قرض داده شده)",
-      youOwe: "بدهی شما (قرض گرفته شده)",
+      youOwe: "بدهی شما (یادداشت)",
       addEntry: "ثبت تراکنش جدید",
       chartTitle: "تفکیک مصارف",
       txns: "لیست تراکنش‌ها",
@@ -440,7 +453,7 @@
 
     let inc = 0, exp = 0, sav = 0;
     let totalLoansGiven = 0, totalLoansTaken = 0;
-    let loanRepaidToMe = 0, loanRepaidByMe = 0;
+    let loanRepaidToMe = 0;
     const catTotals = {};
 
     filtered.forEach(d => {
@@ -453,8 +466,7 @@
       }
       if (d.type === "Expense") {
         exp += amt;
-        if (isLoanCategory) loanRepaidByMe += amt;
-        else catTotals[d.category] = (catTotals[d.category] || 0) + amt;
+        if (!isLoanCategory) catTotals[d.category] = (catTotals[d.category] || 0) + amt;
       }
       if (d.type === "Savings") sav += amt;
       if (d.type === "Loan Given") totalLoansGiven += amt;
@@ -462,15 +474,14 @@
     });
 
     const netOwedToYou = Math.max(0, totalLoansGiven - loanRepaidToMe);
-    const netYouOwe = Math.max(0, totalLoansTaken - loanRepaidByMe);
-    const remainingBalance = inc - exp - sav - totalLoansGiven + totalLoansTaken;
+    const remainingBalance = inc - exp - sav - totalLoansGiven;
 
     document.getElementById("kpi-income").innerText = `${curr}${Math.round(inc)}`;
     document.getElementById("kpi-expense").innerText = `${curr}${Math.round(exp)}`;
     document.getElementById("loan-given").innerText = `${curr}${Math.round(netOwedToYou)}`;
-    document.getElementById("loan-taken").innerText = `${curr}${Math.round(netYouOwe)}`;
+    document.getElementById("loan-taken").innerText = `${curr}${Math.round(totalLoansTaken)}`;
     document.getElementById("tab-loan-given").innerText = `${curr}${Math.round(netOwedToYou)}`;
-    document.getElementById("tab-loan-taken").innerText = `${curr}${Math.round(netYouOwe)}`;
+    document.getElementById("tab-loan-taken").innerText = `${curr}${Math.round(totalLoansTaken)}`;
 
     const balanceEl = document.getElementById("kpi-balance");
     balanceEl.innerText = `${curr}${Math.round(remainingBalance)}`;
