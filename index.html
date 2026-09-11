@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Finance Dashboard</title>
+  <title>Finance & Loan Dashboard</title>
   
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -14,13 +14,16 @@
     * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
     body { background: #f4f7f6; padding: 15px; color: #333; }
     .container { max-width: 1000px; margin: 0 auto; }
-    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
     
-    .filter-bar { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+    .filter-bar { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
     select, input, button { padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.95rem; }
     
-    /* KPI Summaries Layout */
-    .kpi-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+    .btn-pdf { background: #8e44ad; color: white; border: none; font-weight: bold; cursor: pointer; }
+    .btn-pdf:hover { background: #732d91; }
+
+    /* KPI Cards */
+    .kpi-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px; }
     .kpi-card { background: white; padding: 15px 10px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); text-align: center; }
     .kpi-card h3 { font-size: 0.8rem; color: #666; margin-bottom: 3px; }
     .kpi-card p.amount { font-size: 1.2rem; font-weight: bold; }
@@ -29,11 +32,17 @@
     .income { color: #27ae60; } 
     .expense { color: #e74c3c; } 
     .balance { color: #2980b9; }
+    .loan-text { color: #d35400; }
+
+    /* Loan Summary Box */
+    .loan-box { background: #fef9e7; border-left: 4px solid #f39c12; padding: 12px; border-radius: 6px; margin-bottom: 20px; display: flex; justify-content: space-around; font-size: 0.85rem; }
+    .loan-box div { text-align: center; }
+    .loan-box strong { display: block; font-size: 1rem; margin-top: 2px; }
 
     .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 20px; }
     .grid-2 { display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 20px; }
     form { display: flex; flex-direction: column; gap: 8px; }
-    button { background: #27ae60; color: white; border: none; font-weight: bold; cursor: pointer; }
+    button.submit-btn { background: #27ae60; color: white; border: none; font-weight: bold; cursor: pointer; }
     
     table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
     th, td { text-align: left; padding: 10px; border-bottom: 1px solid #eee; }
@@ -58,6 +67,14 @@
       table .col-type, table .col-category { display: none; }
       th, td { padding: 8px 5px; }
     }
+
+    /* Print / PDF Styling */
+    @media print {
+      body { background: white; padding: 0; }
+      .filter-bar, form, .action-btn-cell, .btn-pdf, header button { display: none !important; }
+      .card { box-shadow: none; border: 1px solid #ccc; page-break-inside: avoid; }
+      table .col-type, table .col-category { display: table-cell !important; }
+    }
   </style>
 </head>
 <body>
@@ -65,9 +82,10 @@
 <div class="container">
   <header>
     <h1>Finance Dashboard</h1>
+    <button class="btn-pdf" onclick="window.print()">🖨️ Export PDF / Print</button>
   </header>
 
-  <!-- Filters -->
+  <!-- Filters & Sorting -->
   <div class="filter-bar">
     <select id="year-filter" onchange="renderDashboard()"></select>
     <select id="month-filter" onchange="renderDashboard()">
@@ -79,9 +97,13 @@
       <option value="8">Sep</option><option value="9">Oct</option>
       <option value="10">Nov</option><option value="11">Dec</option>
     </select>
+    <select id="sort-order" onchange="renderDashboard()">
+      <option value="NEWEST">Sort: Newest First</option>
+      <option value="OLDEST">Sort: Oldest First</option>
+    </select>
   </div>
 
-  <!-- KPI Summaries -->
+  <!-- Main KPI Summaries -->
   <div class="kpi-container">
     <div class="kpi-card">
       <h3>Total Income</h3>
@@ -100,28 +122,41 @@
     </div>
   </div>
 
-  <!-- Layout: Form & Chart -->
+  <!-- Loan Tracker Summary -->
+  <div class="loan-box">
+    <div>Owed to You (Loans Given)<strong id="loan-given" class="income">$0</strong></div>
+    <div>You Owe (Loans Taken)<strong id="loan-taken" class="expense">$0</strong></div>
+  </div>
+
+  <!-- Entry Form & Chart -->
   <div class="grid-2">
     <div class="card">
       <h2 id="form-title">Add Entry</h2>
       <form id="entry-form">
         <input type="hidden" id="edit-row-id">
         <input type="date" id="txn-date" required>
+        
         <select id="txn-type">
           <option value="Expense">Expense</option>
           <option value="Income">Income</option>
           <option value="Savings">Savings</option>
+          <option value="Loan Given">Loan Given (Money You Lent)</option>
+          <option value="Loan Taken">Loan Taken (Money You Borrowed)</option>
         </select>
-        <select id="txn-category">
+
+        <select id="txn-category" onchange="handleCategoryChange(this)">
           <option value="Food">Food</option>
           <option value="Housing">Housing</option>
           <option value="Transport">Transport</option>
           <option value="Salary">Salary</option>
+          <option value="Loans / Debt">Loans / Debt</option>
           <option value="Other">Other</option>
+          <option value="NEW">+ Add New Category...</option>
         </select>
+
         <input type="number" step="0.01" id="txn-amount" placeholder="Amount" required>
-        <input type="text" id="txn-notes" placeholder="Notes">
-        <button type="submit" id="save-btn">Save Entry</button>
+        <input type="text" id="txn-notes" placeholder="Notes (e.g. Person Name / Detail)">
+        <button type="submit" id="save-btn" class="submit-btn">Save Entry</button>
       </form>
     </div>
 
@@ -152,33 +187,67 @@
 
 <script>
   // PASTE YOUR DEPLOYED GOOGLE WEB APP URL HERE:
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzL0JJVTm8Nqj1WEJpsOeKWtQVVFMHq0VuTIVsLk_dhwlh1-gIOS_1LRlOprNtT1BLF1w/exec";
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyrV7xOSGEy9KLZhWeWAigBajrIPAhj8Dh_iVKlwZf1dMbMSpWXsXwAy1asfYhe09Td3A/exec";
   let rawData = [];
   let chartInstance = null;
 
-  document.getElementById("txn-date").valueAsDate = new Date();
+  // Helper function to set date input to today
+  function setTodayDate() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById("txn-date").value = today;
+  }
+
+  setTodayDate();
 
   async function loadData() {
     try {
       const res = await fetch(SCRIPT_URL);
       rawData = await res.json();
       populateYears();
+      populateCategories();
       renderDashboard();
     } catch(err) { console.error("Error loading data:", err); }
   }
 
   function populateYears() {
     const yearSelect = document.getElementById("year-filter");
-    const years = [...new Set(rawData.map(d => new Date(d.date).getFullYear()))].sort().reverse();
+    const years = [...new Set(rawData.map(d => new Date(d.date).getFullYear()))].filter(y => !isNaN(y)).sort().reverse();
     const currentYear = new Date().getFullYear();
     if (!years.includes(currentYear)) years.unshift(currentYear);
     
     yearSelect.innerHTML = years.map(y => `<option value="${y}">${y}</option>`).join("");
   }
 
+  function populateCategories() {
+    const catSelect = document.getElementById("txn-category");
+    const existingCats = [...new Set(rawData.map(d => d.category))].filter(Boolean);
+    const defaults = ["Food", "Housing", "Transport", "Salary", "Loans / Debt", "Other"];
+    const allCats = [...new Set([...defaults, ...existingCats])];
+
+    catSelect.innerHTML = allCats.map(c => `<option value="${c}">${c}</option>`).join("") + 
+      `<option value="NEW">+ Add New Category...</option>`;
+  }
+
+  function handleCategoryChange(selectEl) {
+    if (selectEl.value === "NEW") {
+      const newCat = prompt("Enter new category name:");
+      if (newCat && newCat.trim() !== "") {
+        const cleanCat = newCat.trim();
+        const opt = document.createElement("option");
+        opt.value = cleanCat;
+        opt.text = cleanCat;
+        selectEl.add(opt, selectEl.options[selectEl.options.length - 1]);
+        selectEl.value = cleanCat;
+      } else {
+        selectEl.selectedIndex = 0;
+      }
+    }
+  }
+
   function renderDashboard() {
     const selectedYear = document.getElementById("year-filter").value;
     const selectedMonth = document.getElementById("month-filter").value;
+    const sortOrder = document.getElementById("sort-order").value;
 
     const filtered = rawData.filter(d => {
       const dt = new Date(d.date);
@@ -187,9 +256,13 @@
       return matchYear && matchMonth;
     });
 
-    filtered.sort((a,b) => new Date(b.date) - new Date(a.date));
+    // Sort order
+    filtered.sort((a,b) => {
+      const dA = new Date(a.date), dB = new Date(b.date);
+      return sortOrder === "NEWEST" ? dB - dA : dA - dB;
+    });
 
-    let inc = 0, exp = 0, sav = 0;
+    let inc = 0, exp = 0, sav = 0, loanGiven = 0, loanTaken = 0;
     const catTotals = {};
 
     filtered.forEach(d => {
@@ -200,21 +273,24 @@
         catTotals[d.category] = (catTotals[d.category] || 0) + amt;
       }
       if (d.type === "Savings") sav += amt;
+      if (d.type === "Loan Given") loanGiven += amt;
+      if (d.type === "Loan Taken") loanTaken += amt;
     });
 
-    // Subtraction Logic: Net Remaining = Income - Expenses - Savings
-    const remainingBalance = inc - exp - sav;
+    const remainingBalance = inc - exp - sav - loanGiven + loanTaken;
 
-    // Render KPI Cards & Subtitles
     document.getElementById("kpi-income").innerText = `$${Math.round(inc)}`;
     document.getElementById("kpi-deductions").innerText = `-${Math.round(exp)} Exp, -${Math.round(sav)} Sav`;
 
     document.getElementById("kpi-expense").innerText = `$${Math.round(exp)}`;
     document.getElementById("kpi-savings-sub").innerText = `Saved: $${Math.round(sav)}`;
 
+    document.getElementById("loan-given").innerText = `$${Math.round(loanGiven)}`;
+    document.getElementById("loan-taken").innerText = `$${Math.round(loanTaken)}`;
+
     const balanceEl = document.getElementById("kpi-balance");
     balanceEl.innerText = `$${Math.round(remainingBalance)}`;
-    balanceEl.style.color = remainingBalance >= 0 ? "#2980b9" : "#e74c3c"; // Turn red if negative
+    balanceEl.style.color = remainingBalance >= 0 ? "#2980b9" : "#e74c3c";
 
     renderTable(filtered);
     renderChart(catTotals);
@@ -224,7 +300,7 @@
     const tbody = document.getElementById("table-body");
     tbody.innerHTML = data.map(d => {
       const dt = new Date(d.date);
-      const shortDate = `${dt.getMonth()+1}/${dt.getDate()}`;
+      const shortDate = !isNaN(dt) ? `${dt.getMonth()+1}/${dt.getDate()}` : d.date;
       const shortNotes = d.notes ? (d.notes.length > 15 ? d.notes.substring(0,12) + '...' : d.notes) : "";
 
       return `
@@ -258,7 +334,7 @@
         labels: Object.keys(catTotals),
         datasets: [{
           data: Object.values(catTotals),
-          backgroundColor: ["#e74c3c", "#3498db", "#f1c40f", "#9b59b6", "#2ecc71"],
+          backgroundColor: ["#e74c3c", "#3498db", "#f1c40f", "#9b59b6", "#2ecc71", "#e67e22", "#16a085"],
           borderWidth: 1
         }]
       },
@@ -293,6 +369,7 @@
       document.getElementById("entry-form").reset();
       document.getElementById("edit-row-id").value = "";
       document.getElementById("form-title").innerText = "Add Entry";
+      setTodayDate(); // Auto re-select today's date
       
       setTimeout(loadData, 1000);
     } catch(err) {
@@ -308,7 +385,7 @@
     const item = rawData.find(d => d.rowId === rowId);
     if (!item) return;
     document.getElementById("edit-row-id").value = item.rowId;
-    document.getElementById("txn-date").value = item.date;
+    document.getElementById("txn-date").value = item.date || new Date().toISOString().split('T')[0];
     document.getElementById("txn-type").value = item.type;
     document.getElementById("txn-category").value = item.category;
     document.getElementById("txn-amount").value = item.amount;
