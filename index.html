@@ -11,8 +11,10 @@
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
-    body { background: #f4f7f6; padding: 15px; color: #333; }
+    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
+    body { background: #f4f7f6; padding: 15px; color: #333; direction: ltr; }
+    body.rtl { direction: rtl; text-align: right; }
+    
     .container { max-width: 1000px; margin: 0 auto; }
     header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
     
@@ -27,8 +29,9 @@
     .filter-bar { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
     select, input, button { padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.95rem; }
     
-    .btn-pdf { background: #8e44ad; color: white; border: none; font-weight: bold; cursor: pointer; }
-    .btn-pdf:hover { background: #732d91; }
+    .btn-action { background: #8e44ad; color: white; border: none; font-weight: bold; cursor: pointer; }
+    .btn-action:hover { background: #732d91; }
+    .btn-add-note { background: #27ae60; color: white; border: none; font-weight: bold; cursor: pointer; margin-top: 10px; }
 
     /* KPI Cards */
     .kpi-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px; }
@@ -43,6 +46,7 @@
 
     /* Loan Summary Box */
     .loan-box { background: #fef9e7; border-left: 4px solid #f39c12; padding: 15px; border-radius: 6px; margin-bottom: 20px; display: flex; justify-content: space-around; font-size: 0.9rem; }
+    body.rtl .loan-box { border-left: none; border-right: 4px solid #f39c12; }
     .loan-box div { text-align: center; }
     .loan-box strong { display: block; font-size: 1.2rem; margin-top: 4px; }
 
@@ -53,11 +57,17 @@
     
     table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
     th, td { text-align: left; padding: 10px; border-bottom: 1px solid #eee; }
+    body.rtl th, body.rtl td { text-align: right; }
     th { background: #fafafa; }
     .action-btn-cell { text-align: right; white-space: nowrap; }
+    body.rtl .action-btn-cell { text-align: left; }
     .action-btn { padding: 4px 6px; font-size: 0.75rem; border-radius: 4px; border: none; color: white; cursor: pointer; }
     .edit-btn { background: #f39c12; }
     .delete-btn { background: #e74c3c; margin-left: 2px; }
+
+    /* Modal for Quick Note Entry */
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+    .modal-content { background: white; padding: 20px; border-radius: 10px; width: 90%; max-width: 400px; }
 
     @media(min-width: 768px) {
       body { padding: 25px; }
@@ -68,42 +78,32 @@
       .kpi-card p.sub-text { font-size: 0.8rem; }
       table { font-size: 0.9rem; }
     }
-
-    @media(max-width: 600px) {
-      .card h2 { font-size: 1.1rem; }
-      table .col-type, table .col-category { display: none; }
-      th, td { padding: 8px 5px; }
-    }
-
-    @media print {
-      body { background: white; padding: 0; }
-      .nav-tabs, .filter-bar, form, .action-btn-cell, .btn-pdf, header button { display: none !important; }
-      .card { box-shadow: none; border: 1px solid #ccc; page-break-inside: avoid; }
-      table .col-type, table .col-category { display: table-cell !important; }
-    }
   </style>
 </head>
 <body>
 
 <div class="container">
   <header>
-    <h1>Finance Dashboard</h1>
-    <button class="btn-pdf" onclick="window.print()">🖨️ Export PDF / Print</button>
+    <h1 id="app-title">Finance Dashboard</h1>
+    <div>
+      <button class="btn-action" onclick="toggleLanguage()" id="lang-btn">فارسی</button>
+      <button class="btn-action" onclick="window.print()">🖨️ PDF</button>
+    </div>
   </header>
 
   <!-- Tab Navigation Bar -->
   <div class="nav-tabs">
-    <button class="tab-btn active" onclick="switchTab('dashboard-tab', this)">📊 Dashboard</button>
-    <button class="tab-btn" onclick="switchTab('loans-tab', this)">🤝 Loans & Notes</button>
+    <button class="tab-btn active" id="tab-btn-dash" onclick="switchTab('dashboard-tab', this)">📊 Dashboard</button>
+    <button class="tab-btn" id="tab-btn-loans" onclick="switchTab('loans-tab', this)">🤝 Loans & Notes</button>
   </div>
 
   <!-- Global Filters (Currency) -->
   <div class="filter-bar">
     <select id="currency-select" onchange="renderDashboard()">
-      <option value="€" selected>€ (EUR)</option>
+      <option value="؋" selected>؋ (AFN)</option>
+      <option value="€">€ (EUR)</option>
       <option value="$">$ (USD)</option>
       <option value="£">£ (GBP)</option>
-      <option value="؋">؋ (AFN)</option>
       <option value="₹">₹ (INR)</option>
       <option value="A$">A$ (AUD)</option>
       <option value="C$">C$ (CAD)</option>
@@ -117,46 +117,46 @@
     <div class="filter-bar">
       <select id="year-filter" onchange="renderDashboard()"></select>
       <select id="month-filter" onchange="renderDashboard()">
-        <option value="ALL">All Months</option>
-        <option value="0">Jan</option><option value="1">Feb</option>
-        <option value="2">Mar</option><option value="3">Apr</option>
-        <option value="4">May</option><option value="5">Jun</option>
-        <option value="6">Jul</option><option value="7">Aug</option>
-        <option value="8">Sep</option><option value="9">Oct</option>
-        <option value="10">Nov</option><option value="11">Dec</option>
+        <option value="ALL" data-lang-en="All Months" data-lang-fa="همه ماه‌ها">All Months</option>
+        <option value="0">Jan / جدی</option><option value="1">Feb / دلو</option>
+        <option value="2">Mar / حوت</option><option value="3">Apr / حمل</option>
+        <option value="4">May / ثور</option><option value="5">Jun / جوزا</option>
+        <option value="6">Jul / سرطان</option><option value="7">Aug / اسد</option>
+        <option value="8">Sep / سنبله</option><option value="9">Oct / میزان</option>
+        <option value="10">Nov / عقرب</option><option value="11">Dec / قوس</option>
       </select>
       <select id="category-filter" onchange="renderDashboard()">
-        <option value="ALL">All Categories</option>
+        <option value="ALL" data-lang-en="All Categories" data-lang-fa="همه دسته‌بندی‌ها">All Categories</option>
       </select>
       <select id="sort-order" onchange="renderDashboard()">
-        <option value="NEWEST">Sort: Newest First</option>
-        <option value="OLDEST">Sort: Oldest First</option>
+        <option value="NEWEST" data-lang-en="Sort: Newest First" data-lang-fa="ترتیب: جدیدترین">Sort: Newest First</option>
+        <option value="OLDEST" data-lang-en="Sort: Oldest First" data-lang-fa="ترتیب: قدیمی‌ترین">Sort: Oldest First</option>
       </select>
     </div>
 
     <!-- Main KPI Summaries -->
     <div class="kpi-container">
       <div class="kpi-card">
-        <h3>Total Income</h3>
-        <p id="kpi-income" class="amount income">€0</p>
-        <p id="kpi-deductions" class="sub-text">Less: €0 Exp</p>
+        <h3 id="lbl-inc">Total Income</h3>
+        <p id="kpi-income" class="amount income">0</p>
+        <p id="kpi-deductions" class="sub-text">Less: 0 Exp</p>
       </div>
       <div class="kpi-card">
-        <h3>Expenses</h3>
-        <p id="kpi-expense" class="amount expense">€0</p>
-        <p id="kpi-savings-sub" class="sub-text">Saved: €0</p>
+        <h3 id="lbl-exp">Expenses</h3>
+        <p id="kpi-expense" class="amount expense">0</p>
+        <p id="kpi-savings-sub" class="sub-text">Saved: 0</p>
       </div>
       <div class="kpi-card">
-        <h3>Remaining</h3>
-        <p id="kpi-balance" class="amount balance">€0</p>
+        <h3 id="lbl-rem">Remaining</h3>
+        <p id="kpi-balance" class="amount balance">0</p>
         <p id="kpi-status" class="sub-text">Net Balance</p>
       </div>
     </div>
 
     <!-- Loan Summary Box -->
     <div class="loan-box">
-      <div>Owed to You (Loans Given)<strong id="loan-given" class="income">€0</strong></div>
-      <div>You Owe (Loans Taken)<strong id="loan-taken" class="expense">€0</strong></div>
+      <div><span id="lbl-owed-you">Owed to You (Loans Given)</span><strong id="loan-given" class="income">0</strong></div>
+      <div><span id="lbl-you-owe">You Owe (Loans Taken)</span><strong id="loan-taken" class="expense">0</strong></div>
     </div>
 
     <!-- Entry Form & Chart -->
@@ -168,47 +168,47 @@
           <input type="date" id="txn-date" required>
           
           <select id="txn-type">
-            <option value="Expense">Expense</option>
-            <option value="Income">Income</option>
-            <option value="Savings">Savings</option>
-            <option value="Loan Given">Loan Given (Money You Lent)</option>
-            <option value="Loan Taken">Loan Taken (Money You Borrowed)</option>
+            <option value="Expense" data-lang-en="Expense" data-lang-fa="مصرف">Expense</option>
+            <option value="Income" data-lang-en="Income" data-lang-fa="عواید / درآمد">Income</option>
+            <option value="Savings" data-lang-en="Savings" data-lang-fa="پس‌انداز">Savings</option>
+            <option value="Loan Given" data-lang-en="Loan Given (Money You Lent)" data-lang-fa="قرض داده شده (طلب شما)">Loan Given (Money You Lent)</option>
+            <option value="Loan Taken" data-lang-en="Loan Taken (Money You Borrowed)" data-lang-fa="قرض گرفته شده (بدهی شما)">Loan Taken (Money You Borrowed)</option>
           </select>
 
           <select id="txn-category" onchange="handleCategoryChange(this)">
-            <option value="Food">Food</option>
-            <option value="Housing">Housing</option>
-            <option value="Transport">Transport</option>
-            <option value="Salary">Salary</option>
-            <option value="Loans / Debt">Loans / Debt</option>
-            <option value="Other">Other</option>
+            <option value="Food">Food / غذا</option>
+            <option value="Housing">Housing / مسکن</option>
+            <option value="Transport">Transport / ترانسپورت</option>
+            <option value="Salary">Salary / معاش</option>
+            <option value="Loans / Debt">Loans / Debt / قرضه‌ها</option>
+            <option value="Other">Other / متفرقه</option>
             <option value="NEW">+ Add New Category...</option>
           </select>
 
-          <input type="number" step="0.01" id="txn-amount" placeholder="Amount" required>
-          <input type="text" id="txn-notes" placeholder="Notes (e.g. Person Name / Detail)">
-          <button type="submit" id="save-btn" class="submit-btn">Save Entry</button>
+          <input type="number" step="0.01" id="txn-amount" placeholder="Amount / مبلغ" required>
+          <input type="text" id="txn-notes" placeholder="Notes (e.g. Person Name / Detail) / یادداشت">
+          <button type="submit" id="save-btn" class="submit-btn">Save Entry / ثبت</button>
         </form>
       </div>
 
       <div class="card">
-        <h2>Expense Breakdown</h2>
+        <h2 id="lbl-chart">Expense Breakdown</h2>
         <canvas id="expenseChart"></canvas>
       </div>
     </div>
 
     <!-- Data Table -->
     <div class="card">
-      <h2>Transactions</h2>
+      <h2 id="lbl-txns">Transactions</h2>
       <table>
         <thead>
           <tr>
-            <th>Date</th>
-            <th class="col-type">Type</th>
-            <th class="col-category">Category</th>
+            <th id="th-date">Date</th>
+            <th class="col-type" id="th-type">Type</th>
+            <th class="col-category" id="th-cat">Category</th>
             <th id="th-amount">Amount</th>
-            <th>Notes</th>
-            <th class="action-btn-cell">Acts</th>
+            <th id="th-notes">Notes</th>
+            <th class="action-btn-cell" id="th-acts">Acts</th>
           </tr>
         </thead>
         <tbody id="table-body"></tbody>
@@ -219,25 +219,30 @@
   <!-- TAB 2: LOANS & NOTES TAB CONTENT -->
   <div id="loans-tab" class="tab-content">
     <div class="loan-box">
-      <div>Total Owed to You<strong id="tab-loan-given" class="income">€0</strong></div>
-      <div>Total You Owe<strong id="tab-loan-taken" class="expense">€0</strong></div>
+      <div><span id="lbl-tab-owed-you">Total Owed to You</span><strong id="tab-loan-given" class="income">0</strong></div>
+      <div><span id="lbl-tab-you-owe">Total You Owe</span><strong id="tab-loan-taken" class="expense">0</strong></div>
+    </div>
+
+    <div class="card" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+      <h2 id="lbl-loan-title">🤝 Loan Notes & Debt Tracker</h2>
+      <button class="btn-add-note" onclick="openNoteModal()">➕ Add New Note / Loan</button>
     </div>
 
     <div class="card">
-      <h2>🔍 Search Loan Notes</h2>
-      <input type="text" id="loan-search" placeholder="Filter by person's name or note..." onkeyup="renderLoansTab()" style="width: 100%; margin-top: 10px;">
+      <h2 id="lbl-search-title">🔍 Search Loan Notes</h2>
+      <input type="text" id="loan-search" placeholder="Filter by person's name or note... / جستجو نام شخص یا یادداشت" onkeyup="renderLoansTab()" style="width: 100%; margin-top: 10px;">
     </div>
 
     <div class="card">
-      <h2>Loan Transactions & Notes</h2>
+      <h2 id="lbl-loan-list">Loan Transactions & Notes</h2>
       <table>
         <thead>
           <tr>
-            <th>Date</th>
-            <th>Type</th>
-            <th>Amount</th>
-            <th>Notes / Person</th>
-            <th class="action-btn-cell">Acts</th>
+            <th id="th-l-date">Date</th>
+            <th id="th-l-type">Type</th>
+            <th id="th-l-amt">Amount</th>
+            <th id="th-l-notes">Notes / Person</th>
+            <th class="action-btn-cell" id="th-l-acts">Acts</th>
           </tr>
         </thead>
         <tbody id="loan-table-body"></tbody>
@@ -247,17 +252,109 @@
 
 </div>
 
+<!-- Quick Note Modal -->
+<div id="noteModal" class="modal">
+  <div class="modal-content">
+    <h3 id="lbl-modal-title" style="margin-bottom: 10px;">➕ Add Quick Note / Loan</h3>
+    <form id="modal-form">
+      <input type="date" id="m-date" required>
+      <select id="m-type">
+        <option value="Loan Given">Loan Given (Money You Lent / طلب شما)</option>
+        <option value="Loan Taken">Loan Taken (Money You Borrowed / بدهی شما)</option>
+        <option value="Expense">Loan Repaid / پرداخت قرض</option>
+        <option value="Income">Loan Received Back / دریافت طلب</option>
+      </select>
+      <input type="number" step="0.01" id="m-amount" placeholder="Amount / مبلغ" required>
+      <input type="text" id="m-notes" placeholder="Person Name / Details / یادداشت" required>
+      <div style="display: flex; gap: 10px; margin-top: 10px;">
+        <button type="submit" class="submit-btn" style="flex: 1;">Save / ثبت</button>
+        <button type="button" onclick="closeNoteModal()" style="background: #ccc; border: none; padding: 8px; border-radius: 6px; cursor: pointer;">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
   // PASTE YOUR DEPLOYED GOOGLE WEB APP URL HERE:
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyrV7xOSGEy9KLZhWeWAigBajrIPAhj8Dh_iVKlwZf1dMbMSpWXsXwAy1asfYhe09Td3A/exec";
   let rawData = [];
   let chartInstance = null;
+  let isPersian = false;
+
+  const translations = {
+    en: {
+      appTitle: "Finance Dashboard",
+      tabDash: "📊 Dashboard",
+      tabLoans: "🤝 Loans & Notes",
+      inc: "Total Income",
+      exp: "Expenses",
+      rem: "Remaining",
+      owedYou: "Owed to You (Loans Given)",
+      youOwe: "You Owe (Loans Taken)",
+      addEntry: "Add Entry",
+      chartTitle: "Expense Breakdown",
+      txns: "Transactions",
+      date: "Date", type: "Type", cat: "Category", amt: "Amount", notes: "Notes", acts: "Acts"
+    },
+    fa: {
+      appTitle: "داشبورد مالی و حسابداری",
+      tabDash: "📊 داشبورد اصلی",
+      tabLoans: "🤝 یادداشت‌ها و قرضه‌ها",
+      inc: "مجموع عواید",
+      exp: "مصارف",
+      rem: "باقیمانده",
+      owedYou: "طلب شما (قرض داده شده)",
+      youOwe: "بدهی شما (قرض گرفته شده)",
+      addEntry: "ثبت تراکنش جدید",
+      chartTitle: "تفکیک مصارف",
+      txns: "لیست تراکنش‌ها",
+      date: "تاریخ", type: "نوعیت", cat: "دسته‌بندی", amt: "مبلغ", notes: "یادداشت", acts: "عملیات"
+    }
+  };
+
+  function toggleLanguage() {
+    isPersian = !isPersian;
+    document.body.classList.toggle('rtl', isPersian);
+    document.getElementById('lang-btn').innerText = isPersian ? "English" : "فارسی";
+    
+    const lang = isPersian ? 'fa' : 'en';
+    document.getElementById('app-title').innerText = translations[lang].appTitle;
+    document.getElementById('tab-btn-dash').innerText = translations[lang].tabDash;
+    document.getElementById('tab-btn-loans').innerText = translations[lang].tabLoans;
+    document.getElementById('lbl-inc').innerText = translations[lang].inc;
+    document.getElementById('lbl-exp').innerText = translations[lang].exp;
+    document.getElementById('lbl-rem').innerText = translations[lang].rem;
+    document.getElementById('lbl-owed-you').innerText = translations[lang].owedYou;
+    document.getElementById('lbl-tab-owed-you').innerText = translations[lang].owedYou;
+    document.getElementById('lbl-you-owe').innerText = translations[lang].youOwe;
+    document.getElementById('lbl-tab-you-owe').innerText = translations[lang].youOwe;
+    document.getElementById('form-title').innerText = translations[lang].addEntry;
+    document.getElementById('lbl-chart').innerText = translations[lang].chartTitle;
+    document.getElementById('lbl-txns').innerText = translations[lang].txns;
+
+    document.getElementById('th-date').innerText = translations[lang].date;
+    document.getElementById('th-type').innerText = translations[lang].type;
+    document.getElementById('th-cat').innerText = translations[lang].cat;
+    document.getElementById('th-notes').innerText = translations[lang].notes;
+    document.getElementById('th-acts').innerText = translations[lang].acts;
+
+    renderDashboard();
+  }
 
   function switchTab(tabId, btnEl) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
     btnEl.classList.add('active');
+  }
+
+  function openNoteModal() {
+    document.getElementById('m-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('noteModal').style.display = 'flex';
+  }
+
+  function closeNoteModal() {
+    document.getElementById('noteModal').style.display = 'none';
   }
 
   function setTodayDate() {
@@ -326,7 +423,7 @@
     const selectedCategory = document.getElementById("category-filter").value;
     const sortOrder = document.getElementById("sort-order").value;
 
-    document.getElementById("th-amount").innerText = `Amount (${curr})`;
+    document.getElementById("th-amount").innerText = `${translations[isPersian ? 'fa' : 'en'].amt} (${curr})`;
 
     const filtered = rawData.filter(d => {
       const dt = new Date(d.date);
@@ -366,19 +463,12 @@
 
     const netOwedToYou = Math.max(0, totalLoansGiven - loanRepaidToMe);
     const netYouOwe = Math.max(0, totalLoansTaken - loanRepaidByMe);
-
     const remainingBalance = inc - exp - sav - totalLoansGiven + totalLoansTaken;
 
     document.getElementById("kpi-income").innerText = `${curr}${Math.round(inc)}`;
-    document.getElementById("kpi-deductions").innerText = `-${curr}${Math.round(exp)} Exp, -${curr}${Math.round(sav)} Sav`;
-
     document.getElementById("kpi-expense").innerText = `${curr}${Math.round(exp)}`;
-    document.getElementById("kpi-savings-sub").innerText = `Saved: ${curr}${Math.round(sav)}`;
-
     document.getElementById("loan-given").innerText = `${curr}${Math.round(netOwedToYou)}`;
     document.getElementById("loan-taken").innerText = `${curr}${Math.round(netYouOwe)}`;
-    
-    // Also update Loans Tab summary
     document.getElementById("tab-loan-given").innerText = `${curr}${Math.round(netOwedToYou)}`;
     document.getElementById("tab-loan-taken").innerText = `${curr}${Math.round(netYouOwe)}`;
 
@@ -464,14 +554,7 @@
       options: { 
         animation: { animateScale: true, animateRotate: true },
         plugins: { 
-          legend: { position: 'bottom', labels: { boxWidth: 12, padding: 8, font: {size: 11} } },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                return ` ${context.label}: ${curr}${context.raw.toFixed(2)}`;
-              }
-            }
-          }
+          legend: { position: 'bottom', labels: { boxWidth: 12, padding: 8, font: {size: 11} } }
         }
       }
     });
@@ -479,39 +562,43 @@
 
   document.getElementById("entry-form").addEventListener("submit", async function(e) {
     e.preventDefault();
-    const saveBtn = document.getElementById("save-btn");
-    const rowId = document.getElementById("edit-row-id").value;
-    const action = rowId ? "update" : "create";
-    
-    saveBtn.innerText = "Saving...";
-    saveBtn.disabled = true;
-
-    const payload = {
-      action: action,
-      rowId: rowId ? parseInt(rowId) : null,
+    submitData({
+      action: document.getElementById("edit-row-id").value ? "update" : "create",
+      rowId: document.getElementById("edit-row-id").value ? parseInt(document.getElementById("edit-row-id").value) : null,
       date: document.getElementById("txn-date").value,
       type: document.getElementById("txn-type").value,
       category: document.getElementById("txn-category").value,
       amount: document.getElementById("txn-amount").value,
       notes: document.getElementById("txn-notes").value
-    };
+    });
+  });
 
+  document.getElementById("modal-form").addEventListener("submit", async function(e) {
+    e.preventDefault();
+    await submitData({
+      action: "create",
+      date: document.getElementById("m-date").value,
+      type: document.getElementById("m-type").value,
+      category: "Loans / Debt",
+      amount: document.getElementById("m-amount").value,
+      notes: document.getElementById("m-notes").value
+    });
+    closeNoteModal();
+  });
+
+  async function submitData(payload) {
     try {
       await fetch(SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(payload) });
       document.getElementById("entry-form").reset();
+      document.getElementById("modal-form").reset();
       document.getElementById("edit-row-id").value = "";
-      document.getElementById("form-title").innerText = "Add Entry";
+      document.getElementById("form-title").innerText = translations[isPersian ? 'fa' : 'en'].addEntry;
       setTodayDate();
-      
       setTimeout(loadData, 1000);
     } catch(err) {
       console.error("Submission failed:", err);
-      saveBtn.innerText = "Error!";
-    } finally {
-      saveBtn.innerText = "Save Entry";
-      saveBtn.disabled = false;
     }
-  });
+  }
 
   function editRow(rowId) {
     const item = rawData.find(d => d.rowId === rowId);
@@ -522,12 +609,12 @@
     document.getElementById("txn-category").value = item.category;
     document.getElementById("txn-amount").value = item.amount;
     document.getElementById("txn-notes").value = item.notes;
-    document.getElementById("form-title").innerText = "Edit Entry";
+    document.getElementById("form-title").innerText = "Edit Entry / ویرایش";
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   async function deleteRow(rowId) {
-    if (confirm("Delete this entry permanently?")) {
+    if (confirm("Delete this entry permanently? / آیا از حذف مطمئن هستید؟")) {
       await fetch(SCRIPT_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "delete", rowId: rowId }) });
       setTimeout(loadData, 1000);
     }
