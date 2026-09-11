@@ -18,6 +18,7 @@
       --primary-hover: #4338ca;
       --success: #10b981;
       --danger: #ef4444;
+      --danger-hover: #dc2626;
       --bg: #f8fafc;
       --card-bg: #ffffff;
       --text: #0f172a;
@@ -28,7 +29,6 @@
       --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    /* Base Reset & Typography */
     * {
       box-sizing: border-box;
       margin: 0;
@@ -47,7 +47,6 @@
       direction: rtl;
     }
 
-    /* Container */
     .container {
       max-width: 1100px;
       margin: 0 auto;
@@ -89,7 +88,51 @@
       gap: 12px;
     }
 
-    /* Buttons & Interactive Elements */
+    /* Navigation Tabs */
+    .nav-tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 8px;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      padding: 8px 16px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-radius: 8px;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tab-btn.active {
+      background-color: #e0e7ff;
+      color: var(--primary);
+    }
+
+    .tab-btn:hover:not(.active) {
+      background-color: #f1f5f9;
+      color: var(--text);
+    }
+
+    /* Tab Content Views */
+    .tab-content {
+      display: none;
+      animation: fadeInUp 0.4s ease-out;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Buttons */
     .btn {
       display: inline-flex;
       align-items: center;
@@ -121,6 +164,16 @@
       transform: translateY(-1px);
     }
 
+    .btn-danger {
+      background-color: var(--danger);
+      color: white;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+    }
+
+    .btn-danger:hover {
+      background-color: var(--danger-hover);
+    }
+
     .btn-secondary {
       background-color: #f1f5f9;
       color: var(--text);
@@ -144,7 +197,6 @@
     .btn-icon:hover {
       color: var(--primary);
       background: #e0e7ff;
-      transform: rotate(15deg);
     }
 
     /* Summary Cards */
@@ -162,7 +214,6 @@
       box-shadow: var(--shadow);
       border: 1px solid var(--border);
       transition: var(--transition);
-      animation: fadeInUp 0.5s ease-out;
     }
 
     .card:hover {
@@ -188,20 +239,36 @@
     .card-amount.income { color: var(--success); }
     .card-amount.expense { color: var(--danger); }
 
-    /* Main Section & Table Layout */
-    .content-grid {
+    /* Charts Grid Section */
+    .charts-grid {
       display: grid;
-      grid-template-columns: 1fr;
+      grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
       gap: 24px;
+      margin-bottom: 24px;
     }
 
+    .chart-card {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+
+    .chart-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+
+    /* Data Tables */
     .data-table-container {
       background: var(--card-bg);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
       border: 1px solid var(--border);
       overflow: hidden;
-      animation: fadeInUp 0.6s ease-out;
     }
 
     .table-header {
@@ -240,10 +307,6 @@
       font-weight: 600;
     }
 
-    tbody tr {
-      transition: var(--transition);
-    }
-
     tbody tr:hover {
       background-color: #f1f5f9;
     }
@@ -272,7 +335,7 @@
     .action-btn.edit:hover { color: var(--primary); background: #e0e7ff; }
     .action-btn.delete:hover { color: var(--danger); background: #fee2e2; }
 
-    /* Modal Popup Styling */
+    /* Modals (Entry & Delete Warning) */
     .modal-overlay {
       position: fixed;
       top: 0;
@@ -301,7 +364,7 @@
       border-radius: 16px;
       width: 100%;
       max-width: 480px;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
       padding: 24px;
       transform: translateY(20px) scale(0.95);
       transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -318,21 +381,13 @@
       margin-bottom: 20px;
     }
 
-    .modal-header h3 {
-      font-size: 1.15rem;
-      font-weight: 700;
-    }
-
     .close-btn {
       background: none;
       border: none;
       font-size: 1.25rem;
       cursor: pointer;
       color: var(--text-muted);
-      transition: var(--transition);
     }
-
-    .close-btn:hover { color: var(--text); }
 
     .form-group {
       margin-bottom: 16px;
@@ -353,7 +408,6 @@
       border: 1px solid var(--border);
       border-radius: 8px;
       font-size: 0.95rem;
-      transition: var(--transition);
       outline: none;
       background: #f8fafc;
     }
@@ -369,6 +423,26 @@
       justify-content: flex-end;
       gap: 12px;
       margin-top: 24px;
+    }
+
+    /* Warning Modal Specifics */
+    .warning-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: #fee2e2;
+      color: var(--danger);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 16px;
+    }
+
+    /* Notes Search Bar */
+    .notes-search {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
     }
 
     /* Toast Notification */
@@ -401,7 +475,6 @@
       opacity: 1;
     }
 
-    /* Animations Keyframes */
     @keyframes fadeInDown {
       from { opacity: 0; transform: translateY(-15px); }
       to { opacity: 1; transform: translateY(0); }
@@ -412,28 +485,14 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* Responsive Breakdown */
     @media (max-width: 640px) {
-      header {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 16px;
-      }
-      .header-actions {
-        justify-content: space-between;
-      }
-      .modal-card {
-        padding: 20px;
-      }
-      .modal-actions {
-        flex-direction: column-reverse;
-      }
-      .modal-actions button {
-        width: 100%;
-      }
-      .input-field {
-        font-size: 16px; /* Prevents auto-zoom in iOS Safari */
-      }
+      header { flex-direction: column; align-items: stretch; gap: 16px; }
+      .header-actions { justify-content: space-between; }
+      .charts-grid { grid-template-columns: 1fr; }
+      .modal-card { padding: 20px; }
+      .modal-actions { flex-direction: column-reverse; }
+      .modal-actions button { width: 100%; }
+      .input-field { font-size: 16px; }
     }
   </style>
 </head>
@@ -460,33 +519,56 @@
       </div>
     </header>
 
-    <!-- Summary Cards -->
-    <div class="summary-grid">
-      <div class="card">
-        <div class="card-header">
-          <span data-i18n="totalIncome">Total Income</span>
-          <i class="fa-solid fa-arrow-down-long" style="color: var(--success);"></i>
-        </div>
-        <div class="card-amount income" id="total-income">$0.00</div>
-      </div>
-      <div class="card">
-        <div class="card-header">
-          <span data-i18n="totalExpense">Total Expense</span>
-          <i class="fa-solid fa-arrow-up-long" style="color: var(--danger);"></i>
-        </div>
-        <div class="card-amount expense" id="total-expense">$0.00</div>
-      </div>
-      <div class="card">
-        <div class="card-header">
-          <span data-i18n="netBalance">Net Balance</span>
-          <i class="fa-solid fa-scale-balanced" style="color: var(--primary);"></i>
-        </div>
-        <div class="card-amount" id="net-balance">$0.00</div>
-      </div>
+    <!-- Navigation Tabs -->
+    <div class="nav-tabs">
+      <button class="tab-btn active" id="tab-dash" onclick="switchTab('dashboard')">
+        <i class="fa-solid fa-chart-line"></i> <span data-i18n="dashboard">Dashboard</span>
+      </button>
+      <button class="tab-btn" id="tab-notes" onclick="switchTab('notes')">
+        <i class="fa-solid fa-note-sticky"></i> <span data-i18n="notesTab">Notes</span>
+      </button>
     </div>
 
-    <!-- Data Table Container -->
-    <div class="content-grid">
+    <!-- TAB 1: DASHBOARD VIEW -->
+    <div id="view-dashboard" class="tab-content active">
+      <!-- Summary Cards -->
+      <div class="summary-grid">
+        <div class="card">
+          <div class="card-header">
+            <span data-i18n="totalIncome">Total Income</span>
+            <i class="fa-solid fa-arrow-down-long" style="color: var(--success);"></i>
+          </div>
+          <div class="card-amount income" id="total-income">$0.00</div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span data-i18n="totalExpense">Total Expense</span>
+            <i class="fa-solid fa-arrow-up-long" style="color: var(--danger);"></i>
+          </div>
+          <div class="card-amount expense" id="total-expense">$0.00</div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span data-i18n="netBalance">Net Balance</span>
+            <i class="fa-solid fa-scale-balanced" style="color: var(--primary);"></i>
+          </div>
+          <div class="card-amount" id="net-balance">$0.00</div>
+        </div>
+      </div>
+
+      <!-- Charts Grid Section -->
+      <div class="charts-grid">
+        <div class="chart-card">
+          <h3 data-i18n="barChartTitle">Expense Breakdown by Category</h3>
+          <canvas id="categoryBarChart" height="220"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3 data-i18n="lineChartTitle">Income vs Expense Trend</h3>
+          <canvas id="trendLineChart" height="220"></canvas>
+        </div>
+      </div>
+
+      <!-- Transactions Table -->
       <div class="data-table-container">
         <div class="table-header">
           <h2 style="font-size: 1.1rem; font-weight: 700;" data-i18n="transactions">Transactions</h2>
@@ -514,6 +596,30 @@
         </div>
       </div>
     </div>
+
+    <!-- TAB 2: NOTES VIEW -->
+    <div id="view-notes" class="tab-content">
+      <div class="data-table-container">
+        <div class="notes-search">
+          <input type="text" id="notes-filter" class="input-field" placeholder="Search notes..." onkeyup="renderNotesTable()" />
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th data-i18n="date">Date</th>
+                <th data-i18n="category">Category</th>
+                <th data-i18n="amount">Amount</th>
+                <th data-i18n="notes">Notes</th>
+              </tr>
+            </thead>
+            <tbody id="notes-table-body">
+              <!-- Dynamically Populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Entry Modal Popup -->
@@ -521,7 +627,7 @@
     <div class="modal-card">
       <div class="modal-header">
         <h3 id="form-title" data-i18n="newEntry">New Entry</h3>
-        <button class="close-btn" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+        <button class="close-btn" onclick="closeModal('entry-modal')"><i class="fa-solid fa-xmark"></i></button>
       </div>
       
       <form id="entry-form">
@@ -556,42 +662,62 @@
         </div>
 
         <div class="modal-actions">
-          <button type="button" class="btn btn-secondary" onclick="closeModal()" data-i18n="cancel">Cancel</button>
+          <button type="button" class="btn btn-secondary" onclick="closeModal('entry-modal')" data-i18n="cancel">Cancel</button>
           <button type="submit" class="btn btn-primary" data-i18n="save">Save</button>
         </div>
       </form>
     </div>
   </div>
 
+  <!-- Delete Confirmation Modal -->
+  <div id="delete-modal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="warning-icon">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+      </div>
+      <h3 style="margin-bottom: 8px; font-weight: 700;" data-i18n="deleteTitle">Delete Transaction</h3>
+      <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;" data-i18n="deleteConfirm">
+        Are you sure you want to delete this item? This action cannot be undone.
+      </p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('delete-modal')" data-i18n="cancel">Cancel</button>
+        <button type="button" class="btn btn-danger" id="confirm-delete-btn" data-i18n="delete">Delete</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Element -->
   <div id="toast" class="toast">
-    <i class="fa-solid fa-circle-check" style="color: var(--success);"></i>
+    <i class="fa-solid fa-circle-check" id="toast-icon" style="color: var(--success);"></i>
     <span id="toast-message">Success!</span>
   </div>
 
   <script>
-    // Config & Deployment Link
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby8XQ7kN-_25iYTu2aJKogcLWtA8dWeF_VaUG0DuuJoMh_GxriTrxj0nlL1A9ehuKJN/exec";
 
-    // Application State
     let rawData = [];
     let isPersian = false;
+    let pendingDeleteRowId = null;
+    let categoryBarChartInstance = null;
+    let trendLineChartInstance = null;
 
-    // Categories Reference
     const categories = {
       Expense: ["Food", "Transport", "Utilities", "Rent", "Entertainment", "Shopping", "Health", "Other"],
       Income: ["Salary", "Freelance", "Investments", "Gift", "Other"]
     };
 
-    // Translation Dictionaries
     const translations = {
       en: {
         appTitle: "Finance Tracker",
+        dashboard: "Dashboard",
+        notesTab: "Notes",
         newEntry: "New Entry",
         editEntry: "Edit Entry",
         totalIncome: "Total Income",
         totalExpense: "Total Expense",
         netBalance: "Net Balance",
+        barChartTitle: "Expense Breakdown by Category",
+        lineChartTitle: "Income vs Expense Trend",
         transactions: "Transactions",
         date: "Date",
         type: "Type",
@@ -601,17 +727,25 @@
         actions: "Actions",
         cancel: "Cancel",
         save: "Save",
+        delete: "Delete",
+        deleteTitle: "Delete Transaction",
+        deleteConfirm: "Are you sure you want to delete this item? This action cannot be undone.",
         saveSuccess: "Transaction saved successfully!",
         deleteSuccess: "Transaction deleted successfully!",
+        refreshed: "Data refreshed!",
         noData: "No transactions found."
       },
       fa: {
         appTitle: "مدیریت امور مالی",
+        dashboard: "داشبورد",
+        notesTab: "یادداشت‌ها",
         newEntry: "ثبت تراکنش جدید",
         editEntry: "ویرایش تراکنش",
         totalIncome: "مجموع درآمد",
         totalExpense: "مجموع هزینه",
         netBalance: "موجودی کل",
+        barChartTitle: "تفکیک هزینه‌ها بر اساس دسته‌بندی",
+        lineChartTitle: "روند درآمد و هزینه",
         transactions: "تراکنش‌ها",
         date: "تاریخ",
         type: "نوع",
@@ -621,20 +755,35 @@
         actions: "عملیات",
         cancel: "انصراف",
         save: "ذخیره",
+        delete: "حذف",
+        deleteTitle: "حذف تراکنش",
+        deleteConfirm: "آیا از حذف این تراکنش اطمینان دارید؟ این عملیات قابل بازگشت نیست.",
         saveSuccess: "تراکنش با موفقیت ثبت شد!",
         deleteSuccess: "تراکنش با موفقیت حذف شد!",
+        refreshed: "اطلاعات به روز شد!",
         noData: "هیچ تراکنشی یافت نشد."
       }
     };
 
-    // Initialize App
     window.addEventListener("DOMContentLoaded", () => {
       populateCategories();
       resetFormDate();
       loadData();
     });
 
-    // Populate Category Dropdown dynamically based on Type
+    // Tab Navigation Switcher
+    function switchTab(tab) {
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+
+      document.getElementById(`tab-${tab}`).classList.add("active");
+      document.getElementById(`view-${tab}`).classList.add("active");
+
+      if (tab === "notes") {
+        renderNotesTable();
+      }
+    }
+
     function populateCategories() {
       const type = document.getElementById("txn-type").value;
       const catSelect = document.getElementById("txn-category");
@@ -648,40 +797,39 @@
       });
     }
 
-    // Load Data from Google Apps Script
+    // Load Data with Spin Animation & Notification
     async function loadData() {
       const refreshIcon = document.getElementById("refresh-icon");
       refreshIcon.classList.add("fa-spin");
 
       try {
-        const response = await fetch(`${SCRIPT_URL}?action=read`);
+        const response = await fetch(`${SCRIPT_URL}?action=read&t=${Date.now()}`);
         rawData = await response.json();
+        
         renderTable();
         updateSummaryCards();
+        renderCharts();
+        renderNotesTable();
+
+        const lang = isPersian ? 'fa' : 'en';
+        showToast(translations[lang].refreshed);
       } catch (err) {
         console.error("Failed to load data:", err);
       } finally {
-        refreshIcon.classList.remove("fa-spin");
+        setTimeout(() => refreshIcon.classList.remove("fa-spin"), 400);
       }
     }
 
-    // Render Data Table
     function renderTable() {
       const tbody = document.getElementById("table-body");
       const lang = isPersian ? 'fa' : 'en';
       tbody.innerHTML = "";
 
       if (!rawData || rawData.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">
-              ${translations[lang].noData}
-            </td>
-          </tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">${translations[lang].noData}</td></tr>`;
         return;
       }
 
-      // Sort descending by date
       const sortedData = [...rawData].sort((a, b) => new Date(b.date) - new Date(a.date));
 
       sortedData.forEach(item => {
@@ -697,19 +845,44 @@
           <td style="font-weight: 600;">$${formattedAmount}</td>
           <td style="color: var(--text-muted);">${item.notes || "-"}</td>
           <td style="text-align: center;">
-            <button class="action-btn edit" onclick="editRow('${item.rowId}')" title="Edit">
-              <i class="fa-solid fa-pen-to-square"></i>
-            </button>
-            <button class="action-btn delete" onclick="deleteRow('${item.rowId}')" title="Delete">
-              <i class="fa-solid fa-trash"></i>
-            </button>
+            <button class="action-btn edit" onclick="editRow('${item.rowId}')" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
+            <button class="action-btn delete" onclick="confirmDelete('${item.rowId}')" title="Delete"><i class="fa-solid fa-trash"></i></button>
           </td>
         `;
         tbody.appendChild(tr);
       });
     }
 
-    // Update Summary Header Cards
+    // Render Notes Dedicated Tab View
+    function renderNotesTable() {
+      const tbody = document.getElementById("notes-table-body");
+      const filterText = document.getElementById("notes-filter").value.toLowerCase();
+      const lang = isPersian ? 'fa' : 'en';
+
+      tbody.innerHTML = "";
+
+      const filteredNotes = rawData.filter(d => d.notes && d.notes.trim() !== "" && d.notes.toLowerCase().includes(filterText));
+
+      if (filteredNotes.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 24px;">${translations[lang].noData}</td></tr>`;
+        return;
+      }
+
+      filteredNotes.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(item => {
+        const tr = document.createElement("tr");
+        const formattedDate = item.date ? item.date.split("T")[0] : "";
+        const formattedAmount = Number(item.amount).toLocaleString("en-US", { minimumFractionDigits: 2 });
+
+        tr.innerHTML = `
+          <td>${formattedDate}</td>
+          <td>${item.category || "-"}</td>
+          <td style="font-weight: 600;">$${formattedAmount}</td>
+          <td style="color: var(--text);">${item.notes}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
     function updateSummaryCards() {
       let incomeTotal = 0;
       let expenseTotal = 0;
@@ -730,7 +903,71 @@
       netElem.style.color = net >= 0 ? "var(--text)" : "var(--danger)";
     }
 
-    // Open Modal for New Entry
+    // Render Bar & Line Charts
+    function renderCharts() {
+      // 1. Expense by Category Bar Chart
+      const categoryTotals = {};
+      rawData.filter(d => d.type === "Expense").forEach(item => {
+        const cat = item.category || "Other";
+        categoryTotals[cat] = (categoryTotals[cat] || 0) + (parseFloat(item.amount) || 0);
+      });
+
+      const barLabels = Object.keys(categoryTotals);
+      const barData = Object.values(categoryTotals);
+
+      if (categoryBarChartInstance) categoryBarChartInstance.destroy();
+      const ctxBar = document.getElementById("categoryBarChart").getContext("2d");
+      categoryBarChartInstance = new Chart(ctxBar, {
+        type: 'bar',
+        data: {
+          labels: barLabels,
+          datasets: [{
+            label: 'Expenses ($)',
+            data: barData,
+            backgroundColor: '#ef4444',
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+
+      // 2. Trend Line Chart (Grouped by Date)
+      const dateMap = {};
+      rawData.forEach(item => {
+        const dateKey = item.date ? item.date.split("T")[0] : "";
+        if (!dateKey) return;
+        if (!dateMap[dateKey]) dateMap[dateKey] = { income: 0, expense: 0 };
+        if (item.type === "Income") dateMap[dateKey].income += parseFloat(item.amount) || 0;
+        if (item.type === "Expense") dateMap[dateKey].expense += parseFloat(item.amount) || 0;
+      });
+
+      const sortedDates = Object.keys(dateMap).sort((a, b) => new Date(a) - new Date(b));
+      const incomeTrend = sortedDates.map(d => dateMap[d].income);
+      const expenseTrend = sortedDates.map(d => dateMap[d].expense);
+
+      if (trendLineChartInstance) trendLineChartInstance.destroy();
+      const ctxLine = document.getElementById("trendLineChart").getContext("2d");
+      trendLineChartInstance = new Chart(ctxLine, {
+        type: 'line',
+        data: {
+          labels: sortedDates,
+          datasets: [
+            { label: 'Income', data: incomeTrend, borderColor: '#10b981', backgroundColor: '#10b98122', tension: 0.3, fill: true },
+            { label: 'Expense', data: expenseTrend, borderColor: '#ef4444', backgroundColor: '#ef444422', tension: 0.3, fill: true }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    }
+
+    // Modal Display Controls
     function openModalForCreate() {
       resetForm();
       const lang = isPersian ? 'fa' : 'en';
@@ -738,7 +975,6 @@
       document.getElementById("entry-modal").classList.add("active");
     }
 
-    // Open Modal for Edit Entry
     function editRow(rowId) {
       const item = rawData.find(d => String(d.rowId) === String(rowId));
       if (!item) return;
@@ -768,13 +1004,11 @@
       document.getElementById("entry-modal").classList.add("active");
     }
 
-    // Close Modal
-    function closeModal() {
-      document.getElementById("entry-modal").classList.remove("active");
-      resetForm();
+    function closeModal(id) {
+      document.getElementById(id).classList.remove("active");
+      if (id === 'entry-modal') resetForm();
     }
 
-    // Reset Form Fields
     function resetForm() {
       document.getElementById("edit-row-id").value = "";
       document.getElementById("entry-form").reset();
@@ -786,7 +1020,29 @@
       document.getElementById("txn-date").value = new Date().toISOString().split('T')[0];
     }
 
-    // Form Submit Handler
+    // Delete Warning Modal Trigger
+    function confirmDelete(rowId) {
+      pendingDeleteRowId = rowId;
+      document.getElementById("delete-modal").classList.add("active");
+    }
+
+    document.getElementById("confirm-delete-btn").addEventListener("click", async () => {
+      if (!pendingDeleteRowId) return;
+
+      closeModal("delete-modal");
+      const lang = isPersian ? 'fa' : 'en';
+      showToast(translations[lang].deleteSuccess);
+
+      await fetch(SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({ action: "delete", rowId: String(pendingDeleteRowId) })
+      });
+
+      pendingDeleteRowId = null;
+      setTimeout(loadData, 1200);
+    });
+
     document.getElementById("entry-form").addEventListener("submit", async function(e) {
       e.preventDefault();
       const lang = isPersian ? 'fa' : 'en';
@@ -802,7 +1058,7 @@
         notes: document.getElementById("txn-notes").value
       };
 
-      closeModal();
+      closeModal("entry-modal");
       showToast(translations[lang].saveSuccess);
 
       await fetch(SCRIPT_URL, {
@@ -814,23 +1070,6 @@
       setTimeout(loadData, 1200);
     });
 
-    // Delete Row Handler
-    async function deleteRow(rowId) {
-      if (!confirm("Are you sure you want to delete this entry?")) return;
-
-      const lang = isPersian ? 'fa' : 'en';
-      showToast(translations[lang].deleteSuccess);
-
-      await fetch(SCRIPT_URL, {
-        method: "POST",
-        mode: "no-cors",
-        body: JSON.stringify({ action: "delete", rowId: String(rowId) })
-      });
-
-      setTimeout(loadData, 1200);
-    }
-
-    // Toast Notification Handler
     function showToast(message) {
       const toast = document.getElementById("toast");
       document.getElementById("toast-message").innerText = message;
@@ -841,7 +1080,6 @@
       }, 3000);
     }
 
-    // Toggle Language Handler (EN / FA)
     function toggleLanguage() {
       isPersian = !isPersian;
       const lang = isPersian ? 'fa' : 'en';
@@ -856,6 +1094,7 @@
       });
 
       renderTable();
+      renderNotesTable();
     }
   </script>
 </body>
