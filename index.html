@@ -19,6 +19,7 @@
       --success: #10b981;
       --danger: #ef4444;
       --danger-hover: #dc2626;
+      --warning: #f59e0b;
       --bg: #f8fafc;
       --card-bg: #ffffff;
       --text: #0f172a;
@@ -202,7 +203,7 @@
     /* Summary Cards */
     .summary-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
       gap: 20px;
       margin-bottom: 24px;
     }
@@ -238,6 +239,7 @@
 
     .card-amount.income { color: var(--success); }
     .card-amount.expense { color: var(--danger); }
+    .card-amount.warning { color: var(--warning); }
 
     /* Charts Grid Section */
     .charts-grid {
@@ -321,6 +323,8 @@
 
     .badge.income { background: #d1fae5; color: #065f46; }
     .badge.expense { background: #fee2e2; color: #991b1b; }
+    .badge.given { background: #fef3c7; color: #92400e; }
+    .badge.taken { background: #e0e7ff; color: #3730a3; }
 
     .action-btn {
       background: none;
@@ -439,12 +443,6 @@
       margin-bottom: 16px;
     }
 
-    /* Notes Search Bar */
-    .notes-search {
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--border);
-    }
-
     /* Toast Notification */
     .toast {
       position: fixed;
@@ -506,7 +504,7 @@
         <h1 data-i18n="appTitle">Finance Tracker</h1>
       </div>
       <div class="header-actions">
-        <button class="btn btn-primary" onclick="openModalForCreate()">
+        <button class="btn btn-primary" id="btn-add-entry" onclick="openModalForCreate()">
           <i class="fa-solid fa-plus"></i>
           <span data-i18n="newEntry">New Entry</span>
         </button>
@@ -525,7 +523,7 @@
         <i class="fa-solid fa-chart-line"></i> <span data-i18n="dashboard">Dashboard</span>
       </button>
       <button class="tab-btn" id="tab-notes" onclick="switchTab('notes')">
-        <i class="fa-solid fa-note-sticky"></i> <span data-i18n="notesTab">Notes</span>
+        <i class="fa-solid fa-hand-holding-dollar"></i> <span data-i18n="notesTab">Loans & Notes</span>
       </button>
     </div>
 
@@ -597,24 +595,53 @@
       </div>
     </div>
 
-    <!-- TAB 2: NOTES VIEW -->
+    <!-- TAB 2: NOTES & LOANS VIEW -->
     <div id="view-notes" class="tab-content">
+      <!-- Notes Summary Cards -->
+      <div class="summary-grid">
+        <div class="card">
+          <div class="card-header">
+            <span data-i18n="givenLoanTotal">Given Loan (Included in Dashboard)</span>
+            <i class="fa-solid fa-hand-holding-hand" style="color: var(--warning);"></i>
+          </div>
+          <div class="card-amount warning" id="notes-given-total">$0.00</div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span data-i18n="takenLoanTotal">Taken Loan (Excluded from Dashboard)</span>
+            <i class="fa-solid fa-hand-holding-dollar" style="color: var(--primary);"></i>
+          </div>
+          <div class="card-amount" style="color: var(--primary);" id="notes-taken-total">$0.00</div>
+        </div>
+      </div>
+
+      <!-- Notes Data Table -->
       <div class="data-table-container">
-        <div class="notes-search">
-          <input type="text" id="notes-filter" class="input-field" placeholder="Search notes..." onkeyup="renderNotesTable()" />
+        <div class="table-header">
+          <h2 style="font-size: 1.1rem; font-weight: 700;" data-i18n="notesTableTitle">Loans & Notes Sheet Records</h2>
+          <button class="btn btn-primary" onclick="openNoteModalForCreate()">
+            <i class="fa-solid fa-plus"></i>
+            <span data-i18n="addNoteBtn">Add Loan Note</span>
+          </button>
         </div>
         <div class="table-wrapper">
           <table>
             <thead>
               <tr>
                 <th data-i18n="date">Date</th>
-                <th data-i18n="category">Category</th>
+                <th data-i18n="loanType">Loan Type</th>
+                <th data-i18n="person">Person / Description</th>
                 <th data-i18n="amount">Amount</th>
-                <th data-i18n="notes">Notes</th>
+                <th data-i18n="notes">Details / Notes</th>
+                <th style="text-align: center;" data-i18n="actions">Actions</th>
               </tr>
             </thead>
             <tbody id="notes-table-body">
-              <!-- Dynamically Populated -->
+              <tr>
+                <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">
+                  <i class="fa-solid fa-spinner fa-spin"></i> Loading notes sheet data...
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -622,7 +649,7 @@
     </div>
   </div>
 
-  <!-- Entry Modal Popup -->
+  <!-- Entry Modal Popup (Transactions) -->
   <div id="entry-modal" class="modal-overlay">
     <div class="modal-card">
       <div class="modal-header">
@@ -669,13 +696,60 @@
     </div>
   </div>
 
+  <!-- Loan Note Modal Popup (Notes Sheet) -->
+  <div id="note-modal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="note-form-title" data-i18n="addNoteBtn">Add Loan Note</h3>
+        <button class="close-btn" onclick="closeModal('note-modal')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      
+      <form id="note-form">
+        <input type="hidden" id="edit-note-row-id" name="rowId" />
+
+        <div class="form-group">
+          <label for="note-date" data-i18n="date">Date</label>
+          <input type="date" id="note-date" required class="input-field" />
+        </div>
+
+        <div class="form-group">
+          <label for="note-loan-type" data-i18n="loanType">Loan Type</label>
+          <select id="note-loan-type" class="input-field">
+            <option value="Given Loan">Given Loan (Included in Dashboard Expense)</option>
+            <option value="Taken Loan">Taken Loan (Excluded from Dashboard)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="note-person" data-i18n="person">Person / Description</label>
+          <input type="text" id="note-person" required class="input-field" placeholder="e.g. John Doe" />
+        </div>
+
+        <div class="form-group">
+          <label for="note-amount" data-i18n="amount">Amount</label>
+          <input type="number" id="note-amount" step="0.01" required class="input-field" placeholder="0.00" />
+        </div>
+
+        <div class="form-group">
+          <label for="note-details" data-i18n="notes">Details / Notes</label>
+          <input type="text" id="note-details" class="input-field" placeholder="Optional details..." />
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('note-modal')" data-i18n="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" data-i18n="save">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Delete Confirmation Modal -->
   <div id="delete-modal" class="modal-overlay">
     <div class="modal-card">
       <div class="warning-icon">
         <i class="fa-solid fa-triangle-exclamation"></i>
       </div>
-      <h3 style="margin-bottom: 8px; font-weight: 700;" data-i18n="deleteTitle">Delete Transaction</h3>
+      <h3 style="margin-bottom: 8px; font-weight: 700;" data-i18n="deleteTitle">Delete Record</h3>
       <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;" data-i18n="deleteConfirm">
         Are you sure you want to delete this item? This action cannot be undone.
       </p>
@@ -696,8 +770,9 @@
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby8XQ7kN-_25iYTu2aJKogcLWtA8dWeF_VaUG0DuuJoMh_GxriTrxj0nlL1A9ehuKJN/exec";
 
     let rawData = [];
+    let notesData = [];
     let isPersian = false;
-    let pendingDeleteRowId = null;
+    let pendingDelete = { rowId: null, targetSheet: 'transactions' };
     let categoryBarChartInstance = null;
     let trendLineChartInstance = null;
 
@@ -710,7 +785,7 @@
       en: {
         appTitle: "Finance Tracker",
         dashboard: "Dashboard",
-        notesTab: "Notes",
+        notesTab: "Loans & Notes",
         newEntry: "New Entry",
         editEntry: "Edit Entry",
         totalIncome: "Total Income",
@@ -728,17 +803,24 @@
         cancel: "Cancel",
         save: "Save",
         delete: "Delete",
-        deleteTitle: "Delete Transaction",
+        deleteTitle: "Delete Record",
         deleteConfirm: "Are you sure you want to delete this item? This action cannot be undone.",
-        saveSuccess: "Transaction saved successfully!",
-        deleteSuccess: "Transaction deleted successfully!",
+        givenLoanTotal: "Given Loan (Included in Dashboard)",
+        takenLoanTotal: "Taken Loan (Excluded from Dashboard)",
+        notesTableTitle: "Loans & Notes Sheet Records",
+        addNoteBtn: "Add Loan Note",
+        editNoteBtn: "Edit Loan Note",
+        loanType: "Loan Type",
+        person: "Person / Description",
+        saveSuccess: "Record saved successfully!",
+        deleteSuccess: "Record deleted successfully!",
         refreshed: "Data refreshed!",
-        noData: "No transactions found."
+        noData: "No records found."
       },
       fa: {
         appTitle: "مدیریت امور مالی",
         dashboard: "داشبورد",
-        notesTab: "یادداشت‌ها",
+        notesTab: "قرض‌ها و یادداشت‌ها",
         newEntry: "ثبت تراکنش جدید",
         editEntry: "ویرایش تراکنش",
         totalIncome: "مجموع درآمد",
@@ -756,18 +838,25 @@
         cancel: "انصراف",
         save: "ذخیره",
         delete: "حذف",
-        deleteTitle: "حذف تراکنش",
-        deleteConfirm: "آیا از حذف این تراکنش اطمینان دارید؟ این عملیات قابل بازگشت نیست.",
-        saveSuccess: "تراکنش با موفقیت ثبت شد!",
-        deleteSuccess: "تراکنش با موفقیت حذف شد!",
+        deleteTitle: "حذف رکورد",
+        deleteConfirm: "آیا از حذف این رکورد اطمینان دارید؟ این عملیات قابل بازگشت نیست.",
+        givenLoanTotal: "قرض داده شده (محاسبه شده در داشبورد)",
+        takenLoanTotal: "قرض گرفته شده (خارج از داشبورد)",
+        notesTableTitle: "جدول یادداشت‌ها و وام‌ها",
+        addNoteBtn: "افزودن یادداشت قرض",
+        editNoteBtn: "ویرایش یادداشت قرض",
+        loanType: "نوع قرض",
+        person: "طرف حساب / توضیح",
+        saveSuccess: "رکورد با موفقیت ثبت شد!",
+        deleteSuccess: "رکورد با موفقیت حذف شد!",
         refreshed: "اطلاعات به روز شد!",
-        noData: "هیچ تراکنشی یافت نشد."
+        noData: "هیچ رکوردی یافت نشد."
       }
     };
 
     window.addEventListener("DOMContentLoaded", () => {
       populateCategories();
-      resetFormDate();
+      resetFormDates();
       loadData();
     });
 
@@ -779,8 +868,12 @@
       document.getElementById(`tab-${tab}`).classList.add("active");
       document.getElementById(`view-${tab}`).classList.add("active");
 
+      // Hide "New Entry" button when in Notes tab
+      const btnAdd = document.getElementById("btn-add-entry");
       if (tab === "notes") {
-        renderNotesTable();
+        btnAdd.style.display = "none";
+      } else {
+        btnAdd.style.display = "inline-flex";
       }
     }
 
@@ -797,19 +890,24 @@
       });
     }
 
-    // Load Data with Spin Animation & Notification
+    // Load Data for both Transactions and Notes sheets
     async function loadData() {
       const refreshIcon = document.getElementById("refresh-icon");
       refreshIcon.classList.add("fa-spin");
 
       try {
-        const response = await fetch(`${SCRIPT_URL}?action=read&t=${Date.now()}`);
-        rawData = await response.json();
-        
+        // Fetch Main Transactions
+        const resTxn = await fetch(`${SCRIPT_URL}?action=read&sheet=Transactions&t=${Date.now()}`);
+        rawData = await resTxn.json();
+
+        // Fetch Notes Sheet
+        const resNotes = await fetch(`${SCRIPT_URL}?action=read&sheet=Notes&t=${Date.now()}`);
+        notesData = await resNotes.json();
+
         renderTable();
+        renderNotesTable();
         updateSummaryCards();
         renderCharts();
-        renderNotesTable();
 
         const lang = isPersian ? 'fa' : 'en';
         showToast(translations[lang].refreshed);
@@ -820,6 +918,7 @@
       }
     }
 
+    // Main Transactions Table Render
     function renderTable() {
       const tbody = document.getElementById("table-body");
       const lang = isPersian ? 'fa' : 'en';
@@ -846,7 +945,7 @@
           <td style="color: var(--text-muted);">${item.notes || "-"}</td>
           <td style="text-align: center;">
             <button class="action-btn edit" onclick="editRow('${item.rowId}')" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
-            <button class="action-btn delete" onclick="confirmDelete('${item.rowId}')" title="Delete"><i class="fa-solid fa-trash"></i></button>
+            <button class="action-btn delete" onclick="confirmDelete('${item.rowId}', 'transactions')" title="Delete"><i class="fa-solid fa-trash"></i></button>
           </td>
         `;
         tbody.appendChild(tr);
@@ -856,28 +955,32 @@
     // Render Notes Dedicated Tab View
     function renderNotesTable() {
       const tbody = document.getElementById("notes-table-body");
-      const filterText = document.getElementById("notes-filter").value.toLowerCase();
       const lang = isPersian ? 'fa' : 'en';
 
       tbody.innerHTML = "";
 
-      const filteredNotes = rawData.filter(d => d.notes && d.notes.trim() !== "" && d.notes.toLowerCase().includes(filterText));
-
-      if (filteredNotes.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 24px;">${translations[lang].noData}</td></tr>`;
+      if (!notesData || notesData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">${translations[lang].noData}</td></tr>`;
         return;
       }
 
-      filteredNotes.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(item => {
+      notesData.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(item => {
         const tr = document.createElement("tr");
         const formattedDate = item.date ? item.date.split("T")[0] : "";
         const formattedAmount = Number(item.amount).toLocaleString("en-US", { minimumFractionDigits: 2 });
+        const isGiven = (item.loanType === "Given Loan");
+        const badgeClass = isGiven ? "given" : "taken";
 
         tr.innerHTML = `
           <td>${formattedDate}</td>
-          <td>${item.category || "-"}</td>
+          <td><span class="badge ${badgeClass}">${item.loanType || 'Given Loan'}</span></td>
+          <td style="font-weight: 600;">${item.person || "-"}</td>
           <td style="font-weight: 600;">$${formattedAmount}</td>
-          <td style="color: var(--text);">${item.notes}</td>
+          <td style="color: var(--text-muted);">${item.details || item.notes || "-"}</td>
+          <td style="text-align: center;">
+            <button class="action-btn edit" onclick="editNoteRow('${item.rowId}')" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
+            <button class="action-btn delete" onclick="confirmDelete('${item.rowId}', 'notes')" title="Delete"><i class="fa-solid fa-trash"></i></button>
+          </td>
         `;
         tbody.appendChild(tr);
       });
@@ -886,31 +989,59 @@
     function updateSummaryCards() {
       let incomeTotal = 0;
       let expenseTotal = 0;
+      let givenLoanTotal = 0;
+      let takenLoanTotal = 0;
 
+      // Transactions
       rawData.forEach(item => {
         const val = parseFloat(item.amount) || 0;
         if (item.type === "Income") incomeTotal += val;
         if (item.type === "Expense") expenseTotal += val;
       });
 
-      const net = incomeTotal - expenseTotal;
+      // Notes (Loans)
+      notesData.forEach(item => {
+        const val = parseFloat(item.amount) || 0;
+        if (item.loanType === "Given Loan") {
+          givenLoanTotal += val;
+        } else if (item.loanType === "Taken Loan") {
+          takenLoanTotal += val;
+        }
+      });
+
+      // EXCLUDE Taken Loans, INCLUDE Given Loans in Expense Total
+      const finalExpenseTotal = expenseTotal + givenLoanTotal;
+      const net = incomeTotal - finalExpenseTotal;
 
       document.getElementById("total-income").innerText = `$${incomeTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
-      document.getElementById("total-expense").innerText = `$${expenseTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+      document.getElementById("total-expense").innerText = `$${finalExpenseTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
       
       const netElem = document.getElementById("net-balance");
       netElem.innerText = `$${net.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
       netElem.style.color = net >= 0 ? "var(--text)" : "var(--danger)";
+
+      document.getElementById("notes-given-total").innerText = `$${givenLoanTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+      document.getElementById("notes-taken-total").innerText = `$${takenLoanTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
     }
 
     // Render Bar & Line Charts
     function renderCharts() {
-      // 1. Expense by Category Bar Chart
+      // 1. Expense by Category Bar Chart (Includes Given Loans as a Category)
       const categoryTotals = {};
+      
       rawData.filter(d => d.type === "Expense").forEach(item => {
         const cat = item.category || "Other";
         categoryTotals[cat] = (categoryTotals[cat] || 0) + (parseFloat(item.amount) || 0);
       });
+
+      // Add Given Loans as an expense category
+      let givenLoanSum = 0;
+      notesData.filter(d => d.loanType === "Given Loan").forEach(item => {
+        givenLoanSum += (parseFloat(item.amount) || 0);
+      });
+      if (givenLoanSum > 0) {
+        categoryTotals["Given Loan"] = givenLoanSum;
+      }
 
       const barLabels = Object.keys(categoryTotals);
       const barData = Object.values(categoryTotals);
@@ -935,14 +1066,22 @@
         }
       });
 
-      // 2. Trend Line Chart (Grouped by Date)
+      // 2. Trend Line Chart (Grouped by Date, includes Given Loans as Expense, EXCLUDES Taken Loans)
       const dateMap = {};
+      
       rawData.forEach(item => {
         const dateKey = item.date ? item.date.split("T")[0] : "";
         if (!dateKey) return;
         if (!dateMap[dateKey]) dateMap[dateKey] = { income: 0, expense: 0 };
         if (item.type === "Income") dateMap[dateKey].income += parseFloat(item.amount) || 0;
         if (item.type === "Expense") dateMap[dateKey].expense += parseFloat(item.amount) || 0;
+      });
+
+      notesData.filter(d => d.loanType === "Given Loan").forEach(item => {
+        const dateKey = item.date ? item.date.split("T")[0] : "";
+        if (!dateKey) return;
+        if (!dateMap[dateKey]) dateMap[dateKey] = { income: 0, expense: 0 };
+        dateMap[dateKey].expense += parseFloat(item.amount) || 0;
       });
 
       const sortedDates = Object.keys(dateMap).sort((a, b) => new Date(a) - new Date(b));
@@ -967,7 +1106,7 @@
       });
     }
 
-    // Modal Display Controls
+    // Modal Display Controls (Transactions)
     function openModalForCreate() {
       resetForm();
       const lang = isPersian ? 'fa' : 'en';
@@ -1004,30 +1143,66 @@
       document.getElementById("entry-modal").classList.add("active");
     }
 
+    // Modal Controls for Loan Notes
+    function openNoteModalForCreate() {
+      resetNoteForm();
+      const lang = isPersian ? 'fa' : 'en';
+      document.getElementById("note-form-title").innerText = translations[lang].addNoteBtn;
+      document.getElementById("note-modal").classList.add("active");
+    }
+
+    function editNoteRow(rowId) {
+      const item = notesData.find(d => String(d.rowId) === String(rowId));
+      if (!item) return;
+
+      document.getElementById("edit-note-row-id").value = item.rowId;
+      document.getElementById("note-date").value = item.date ? item.date.split('T')[0] : new Date().toISOString().split('T')[0];
+      document.getElementById("note-loan-type").value = item.loanType || "Given Loan";
+      document.getElementById("note-person").value = item.person || "";
+      document.getElementById("note-amount").value = item.amount || "";
+      document.getElementById("note-details").value = item.details || item.notes || "";
+
+      const lang = isPersian ? 'fa' : 'en';
+      document.getElementById("note-form-title").innerText = translations[lang].editNoteBtn;
+      document.getElementById("note-modal").classList.add("active");
+    }
+
     function closeModal(id) {
       document.getElementById(id).classList.remove("active");
       if (id === 'entry-modal') resetForm();
+      if (id === 'note-modal') resetNoteForm();
     }
 
     function resetForm() {
       document.getElementById("edit-row-id").value = "";
       document.getElementById("entry-form").reset();
-      resetFormDate();
+      resetFormDates();
       populateCategories();
     }
 
-    function resetFormDate() {
-      document.getElementById("txn-date").value = new Date().toISOString().split('T')[0];
+    function resetNoteForm() {
+      document.getElementById("edit-note-row-id").value = "";
+      document.getElementById("note-form").reset();
+      resetFormDates();
+    }
+
+    function resetFormDates() {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById("txn-date").value = today;
+      document.getElementById("note-date").value = today;
     }
 
     // Delete Warning Modal Trigger
-    function confirmDelete(rowId) {
-      pendingDeleteRowId = rowId;
+    function confirmDelete(rowId, targetSheet = 'transactions') {
+      pendingDelete = { rowId: rowId, targetSheet: targetSheet };
       document.getElementById("delete-modal").classList.add("active");
     }
 
     document.getElementById("confirm-delete-btn").addEventListener("click", async () => {
-      if (!pendingDeleteRowId) return;
+      if (!pendingDelete.rowId) return;
+
+      const targetSheet = pendingDelete.targetSheet;
+      const targetRowId = pendingDelete.rowId;
 
       closeModal("delete-modal");
       const lang = isPersian ? 'fa' : 'en';
@@ -1036,13 +1211,14 @@
       await fetch(SCRIPT_URL, {
         method: "POST",
         mode: "no-cors",
-        body: JSON.stringify({ action: "delete", rowId: String(pendingDeleteRowId) })
+        body: JSON.stringify({ action: "delete", sheet: targetSheet === 'notes' ? 'Notes' : 'Transactions', rowId: String(targetRowId) })
       });
 
-      pendingDeleteRowId = null;
+      pendingDelete = { rowId: null, targetSheet: 'transactions' };
       setTimeout(loadData, 1200);
     });
 
+    // Handle Transactions Form Submit
     document.getElementById("entry-form").addEventListener("submit", async function(e) {
       e.preventDefault();
       const lang = isPersian ? 'fa' : 'en';
@@ -1050,6 +1226,7 @@
 
       const payload = {
         action: editId ? "update" : "create",
+        sheet: "Transactions",
         rowId: editId ? editId : null,
         date: document.getElementById("txn-date").value,
         type: document.getElementById("txn-type").value,
@@ -1059,6 +1236,35 @@
       };
 
       closeModal("entry-modal");
+      showToast(translations[lang].saveSuccess);
+
+      await fetch(SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify(payload)
+      });
+
+      setTimeout(loadData, 1200);
+    });
+
+    // Handle Loan Note Form Submit
+    document.getElementById("note-form").addEventListener("submit", async function(e) {
+      e.preventDefault();
+      const lang = isPersian ? 'fa' : 'en';
+      const editId = document.getElementById("edit-note-row-id").value;
+
+      const payload = {
+        action: editId ? "update" : "create",
+        sheet: "Notes",
+        rowId: editId ? editId : null,
+        date: document.getElementById("note-date").value,
+        loanType: document.getElementById("note-loan-type").value,
+        person: document.getElementById("note-person").value,
+        amount: document.getElementById("note-amount").value,
+        details: document.getElementById("note-details").value
+      };
+
+      closeModal("note-modal");
       showToast(translations[lang].saveSuccess);
 
       await fetch(SCRIPT_URL, {
