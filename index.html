@@ -416,12 +416,34 @@
     }
 
     .card-icon {
-      width: 34px;
-      height: 34px;
-      border-radius: 10px;
+      width: 38px;
+      height: 38px;
+      min-width: 38px;
+      border-radius: 11px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      font-size: 1.05rem;
+      line-height: 1;
+      border: 1px solid rgba(15,23,42,.06);
+      box-shadow: 0 4px 10px rgba(15,23,42,.05);
+    }
+
+    .card-icon i {
+      display: inline-block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+
+    .loan-overview-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .loan-overview-card {
+      min-width: 0;
     }
 
     .icon-success { background: #d1fae5; color: #047857; }
@@ -940,6 +962,19 @@
 
     .category-legend-note i { color: var(--primary); }
 
+    .chart-empty-state {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      color: var(--text-muted);
+      font-size: .86rem;
+      text-align: center;
+      pointer-events: none;
+    }
+
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
         animation-duration: .01ms !important;
@@ -959,7 +994,8 @@
         grid-template-columns: 1fr;
       }
 
-      .report-summary-grid {
+      .report-summary-grid,
+      .loan-overview-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
@@ -999,7 +1035,8 @@
       }
 
       .summary-grid,
-      .report-summary-grid {
+      .report-summary-grid,
+      .loan-overview-grid {
         grid-template-columns: 1fr;
       }
 
@@ -1258,6 +1295,29 @@
 
       <!-- ============================== NOTES ============================== -->
       <div id="view-notes" class="tab-content">
+        <div class="loan-overview-grid">
+          <div class="card loan-overview-card">
+            <div class="card-header"><span>Given Loans</span><span class="card-icon icon-warning"><i class="fa-solid fa-hand-holding-dollar"></i></span></div>
+            <div class="card-amount" style="color:var(--warning);" id="loan-given-total">€0.00</div>
+            <div class="card-sub" id="loan-given-sub">Money you lent out</div>
+          </div>
+          <div class="card loan-overview-card">
+            <div class="card-header"><span>Repayments Received</span><span class="card-icon icon-success"><i class="fa-solid fa-arrow-down-left"></i></span></div>
+            <div class="card-amount" style="color:var(--success);" id="loan-received-total">€0.00</div>
+            <div class="card-sub" id="loan-received-sub">Money returned to you</div>
+          </div>
+          <div class="card loan-overview-card">
+            <div class="card-header"><span>Outstanding Given</span><span class="card-icon icon-danger"><i class="fa-solid fa-clock"></i></span></div>
+            <div class="card-amount" style="color:var(--danger);" id="loan-outstanding-total">€0.00</div>
+            <div class="card-sub">Given loans still outstanding</div>
+          </div>
+          <div class="card loan-overview-card">
+            <div class="card-header"><span>Taken Loans</span><span class="card-icon icon-info"><i class="fa-solid fa-handshake"></i></span></div>
+            <div class="card-amount" style="color:var(--info);" id="loan-taken-total">€0.00</div>
+            <div class="card-sub">Note-only liabilities</div>
+          </div>
+        </div>
+
         <div class="data-table-container">
           <div class="table-header">
             <div>
@@ -1680,7 +1740,6 @@
        ========================================================================= */
 
     const SCRIPT_URL ="https://script.google.com/macros/s/AKfycbyCm1R7rUFmp8pWKMvEug6KJZTbsomtZ5Z8iObUxdxOsI4n_xMcNZvi49G9SjUtytTA1Q/exec";
-
     const REQUEST_TIMEOUT_MS = 20000;
     const SESSION_KEY = "finance_tracker_session_v2";
     const USER_KEY = "finance_tracker_user_v2";
@@ -1705,6 +1764,25 @@
        ========================================================================= */
 
     window.addEventListener("load", bootstrap);
+
+    let lastSuccessfulLoadAt = 0;
+    let chartsFrame = 0;
+
+    // Avoid expensive Google Apps Script reads every time the browser regains focus.
+    // Refresh at most once every 60 seconds while keeping the manual refresh button instant.
+    window.addEventListener("focus", function() {
+      if (!sessionToken) return;
+      const now = Date.now();
+      if (now - lastSuccessfulLoadAt < 60000) return;
+      loadData({ silent: true });
+    });
+
+    document.addEventListener("visibilitychange", function() {
+      if (document.visibilityState !== "visible" || !sessionToken) return;
+      const now = Date.now();
+      if (now - lastSuccessfulLoadAt < 60000) return;
+      loadData({ silent: true });
+    });
 
     async function bootstrap() {
       bindEvents();
@@ -1737,8 +1815,8 @@
       document.getElementById("btn-export-report-pdf").addEventListener("click", exportReportToPdf);
 
       document.getElementById("report-period").addEventListener("change", updateReportControls);
-      document.getElementById("report-year").addEventListener("change", renderReport);
-      document.getElementById("report-month").addEventListener("change", renderReport);
+      document.getElementById("report-year").addEventListener("change", scheduleReportRender);
+      document.getElementById("report-month").addEventListener("change", scheduleReportRender);
 
       document.getElementById("entry-form").addEventListener("submit", handleEntrySubmit);
       document.getElementById("note-form").addEventListener("submit", handleNoteSubmit);
@@ -1972,6 +2050,7 @@
 
         rawData = Array.isArray(entries) ? entries : [];
         notesData = Array.isArray(notes) ? notes : [];
+        lastSuccessfulLoadAt = Date.now();
 
         renderAll();
 
@@ -2025,7 +2104,7 @@
 
       if (tab === "reports") {
         initializeReportFilters();
-        renderReport();
+        scheduleReportRender();
       }
 
       renderAll();
@@ -2147,12 +2226,18 @@
       document.getElementById("net-balance").textContent = formatMoney(totals.netBal);
       document.getElementById("outstanding-given").textContent = formatMoney(totals.outstandingGiven);
 
+      document.getElementById("loan-given-total").textContent = formatMoney(totals.givenLoan);
+      document.getElementById("loan-received-total").textContent = formatMoney(totals.repayReceived);
+      document.getElementById("loan-outstanding-total").textContent = formatMoney(totals.outstandingGiven);
+      document.getElementById("loan-taken-total").textContent = formatMoney(totals.takenLoan);
+
       renderTransactionsTable();
       renderNotesTable();
-      updateCharts(totals.totalInc, totals.totalExp, totals.categories);
+
+      scheduleDashboardCharts(totals);
 
       if (document.getElementById("view-reports").classList.contains("active")) {
-        renderReport();
+        scheduleReportRender();
       }
     }
 
@@ -2162,6 +2247,7 @@
       let givenLoan = 0;
       let repayReceived = 0;
       let repaySent = 0;
+      let takenLoan = 0;
 
       const categories = {};
       const peopleGiven = {};
@@ -2193,6 +2279,7 @@
           repayReceived = roundCents(repayReceived + val);
           peopleReceived[person] = roundCents((peopleReceived[person] || 0) + val);
         } else if (item.loanType === "Taken Loan") {
+          takenLoan = roundCents(takenLoan + val);
           peopleTaken[person] = roundCents((peopleTaken[person] || 0) + val);
         } else if (item.loanType === "Repayment Sent") {
           repaySent = roundCents(repaySent + val);
@@ -2222,6 +2309,10 @@
         totalExp,
         netBal,
         outstandingGiven,
+        givenLoan,
+        repayReceived,
+        repaySent,
+        takenLoan,
         categories
       };
     }
@@ -2370,6 +2461,17 @@
       return Array.from({ length: count }, (_, i) => CATEGORY_PALETTE[i % CATEGORY_PALETTE.length]);
     }
 
+    function scheduleDashboardCharts(totals) {
+      cancelAnimationFrame(chartsFrame);
+      chartsFrame = requestAnimationFrame(function() {
+        chartsFrame = requestAnimationFrame(function() {
+          if (document.getElementById("view-dashboard").classList.contains("active")) {
+            updateCharts(totals.totalInc, totals.totalExp, totals.categories);
+          }
+        });
+      });
+    }
+
     function updateCharts(totalInc, totalExp, categories) {
       const flowCanvas = document.getElementById("cashFlowChart");
       const catCanvas = document.getElementById("categoryChart");
@@ -2411,6 +2513,19 @@
       });
 
       const sortedCat = Object.entries(categories).sort((a, b) => b[1] - a[1]);
+
+      if (sortedCat.length === 0) {
+        const ctx = catCanvas.getContext("2d");
+        ctx.clearRect(0, 0, catCanvas.width, catCanvas.height);
+        catCanvas.style.opacity = "0";
+        const empty = catCanvas.parentElement.querySelector(".chart-empty-state");
+        if (empty) empty.remove();
+        catCanvas.parentElement.insertAdjacentHTML("beforeend", '<div class="chart-empty-state">No expense categories yet.</div>');
+        return;
+      }
+      catCanvas.style.opacity = "1";
+      const empty = catCanvas.parentElement.querySelector(".chart-empty-state");
+      if (empty) empty.remove();
 
       categoryChartInstance = new Chart(catCanvas.getContext("2d"), {
         type: "bar",
@@ -2469,8 +2584,10 @@
         yearSelect.value = String(currentYear);
       }
 
-      const today = new Date();
-      document.getElementById("report-month").value = String(today.getMonth());
+      const monthSelect = document.getElementById("report-month");
+      if (!monthSelect.value) {
+        monthSelect.value = String(new Date().getMonth());
+      }
       updateReportControls();
     }
 
@@ -2478,7 +2595,7 @@
       const mode = document.getElementById("report-period").value;
       const monthWrap = document.getElementById("report-month-wrap");
       monthWrap.classList.toggle("hidden", mode !== "monthly");
-      renderReport();
+      scheduleReportRender();
     }
 
     function parseDateParts(value) {
@@ -2663,6 +2780,17 @@
       };
     }
 
+    let reportRenderFrame = 0;
+
+    function scheduleReportRender() {
+      cancelAnimationFrame(reportRenderFrame);
+      reportRenderFrame = requestAnimationFrame(function() {
+        reportRenderFrame = requestAnimationFrame(function() {
+          renderReport();
+        });
+      });
+    }
+
     function renderReport() {
       const yearSelect = document.getElementById("report-year");
       if (!yearSelect || !yearSelect.value) return;
@@ -2693,6 +2821,13 @@
 
     function updateReportCharts(meta, report) {
       const flow = getReportFlowSeries(meta);
+      const flowCanvas = document.getElementById("reportCashFlowChart");
+      const categoryCanvas = document.getElementById("reportCategoryChart");
+      if (!flowCanvas || !categoryCanvas) return;
+      if (flowCanvas.clientWidth === 0 || categoryCanvas.clientWidth === 0) {
+        scheduleReportRender();
+        return;
+      }
 
       if (reportCashFlowChartInstance) {
         reportCashFlowChartInstance.destroy();
@@ -2747,8 +2882,20 @@
       const categoryEntries = Object.entries(report.categories)
         .sort((a, b) => b[1] - a[1]);
 
-      reportCategoryChartInstance = new Chart(
-        document.getElementById("reportCategoryChart").getContext("2d"),
+      if (categoryEntries.length === 0) {
+        const ctx = categoryCanvas.getContext("2d");
+        ctx.clearRect(0, 0, categoryCanvas.width, categoryCanvas.height);
+        categoryCanvas.style.opacity = "0";
+        const empty = categoryCanvas.parentElement.querySelector(".chart-empty-state");
+        if (empty) empty.remove();
+        categoryCanvas.parentElement.insertAdjacentHTML("beforeend", '<div class="chart-empty-state">No category data for this period.</div>');
+      } else {
+        categoryCanvas.style.opacity = "1";
+        const empty = categoryCanvas.parentElement.querySelector(".chart-empty-state");
+        if (empty) empty.remove();
+
+        reportCategoryChartInstance = new Chart(
+        categoryCanvas.getContext("2d"),
         {
           type: "doughnut",
           data: {
@@ -2773,6 +2920,7 @@
           }
         }
       );
+      }
     }
 
     function renderReportLoanSummary(loanTypes) {
