@@ -9,6 +9,8 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@4.2.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@5.0.8/dist/jspdf.plugin.autotable.min.js"></script>
 
   <style>
     :root {
@@ -664,6 +666,70 @@
       font-size: .74rem;
     }
 
+    .report-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 18px;
+    }
+
+    .report-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .report-header h2 {
+      font-size: 1.08rem;
+      margin-bottom: 5px;
+    }
+
+    .report-header p {
+      color: var(--text-muted);
+      font-size: .82rem;
+      line-height: 1.5;
+    }
+
+    .report-filters {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      padding: 14px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+
+    .form-group.compact {
+      margin-bottom: 0;
+    }
+
+    .form-group.compact .filter-select {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .report-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .report-summary-grid .card {
+      min-width: 0;
+    }
+
+    .report-export-note {
+      color: var(--text-muted);
+      font-size: .76rem;
+      margin-top: 7px;
+    }
+
     /* ============================== MODALS ============================== */
 
     .modal-overlay {
@@ -777,6 +843,14 @@
       .settings-grid {
         grid-template-columns: 1fr;
       }
+
+      .report-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .report-filters {
+        grid-template-columns: 1fr;
+      }
     }
 
     @media (max-width: 640px) {
@@ -809,7 +883,8 @@
         justify-content: center;
       }
 
-      .summary-grid {
+      .summary-grid,
+      .report-summary-grid {
         grid-template-columns: 1fr;
       }
 
@@ -929,6 +1004,11 @@
             <i class="fa-solid fa-rotate-right" id="refresh-icon"></i>
           </button>
 
+          <button class="btn btn-secondary" id="btn-export-pdf" title="Export all finance data to PDF">
+            <i class="fa-solid fa-file-pdf"></i>
+            <span>Export PDF</span>
+          </button>
+
           <button class="btn btn-secondary" id="btn-logout" title="Sign out">
             <i class="fa-solid fa-arrow-right-from-bracket"></i>
             <span>Logout</span>
@@ -950,6 +1030,11 @@
         <button class="tab-btn" id="tab-notes" onclick="switchTab('notes')">
           <i class="fa-solid fa-hand-holding-dollar"></i>
           <span>Loans & Notes</span>
+        </button>
+
+        <button class="tab-btn" id="tab-reports" onclick="switchTab('reports')">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span>Reports</span>
         </button>
 
         <button class="tab-btn hidden" id="tab-settings" onclick="switchTab('settings')">
@@ -1093,6 +1178,139 @@
                 </tr>
               </thead>
               <tbody id="notes-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================== REPORTS ============================== -->
+      <div id="view-reports" class="tab-content">
+        <div class="report-card">
+          <div class="report-header">
+            <div>
+              <h2>Financial Reports</h2>
+              <p>Analyze income, money out, and transaction categories for a selected month or year.</p>
+            </div>
+            <button class="btn btn-primary" id="btn-export-report-pdf">
+              <i class="fa-solid fa-file-pdf"></i>
+              <span>Export Report PDF</span>
+            </button>
+          </div>
+
+          <div class="report-filters">
+            <div class="form-group compact">
+              <label for="report-period">Report Type</label>
+              <select id="report-period" class="filter-select">
+                <option value="monthly">Monthly Report</option>
+                <option value="yearly">Yearly Report</option>
+              </select>
+            </div>
+
+            <div class="form-group compact">
+              <label for="report-year">Year</label>
+              <select id="report-year" class="filter-select"></select>
+            </div>
+
+            <div class="form-group compact" id="report-month-wrap">
+              <label for="report-month">Month</label>
+              <select id="report-month" class="filter-select">
+                <option value="0">January</option>
+                <option value="1">February</option>
+                <option value="2">March</option>
+                <option value="3">April</option>
+                <option value="4">May</option>
+                <option value="5">June</option>
+                <option value="6">July</option>
+                <option value="7">August</option>
+                <option value="8">September</option>
+                <option value="9">October</option>
+                <option value="10">November</option>
+                <option value="11">December</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="report-summary-grid">
+          <div class="card">
+            <div class="card-header">
+              <span>Report Income</span>
+              <span class="card-icon icon-success"><i class="fa-solid fa-arrow-trend-up"></i></span>
+            </div>
+            <div class="card-amount" style="color:var(--success);" id="report-income">€0.00</div>
+            <div class="card-sub" id="report-income-sub">Income + repayments received</div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span>Report Money Out</span>
+              <span class="card-icon icon-danger"><i class="fa-solid fa-arrow-trend-down"></i></span>
+            </div>
+            <div class="card-amount" style="color:var(--danger);" id="report-expense">€0.00</div>
+            <div class="card-sub" id="report-expense-sub">Expenses + loans + repayments sent</div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span>Report Net</span>
+              <span class="card-icon icon-primary"><i class="fa-solid fa-scale-balanced"></i></span>
+            </div>
+            <div class="card-amount" style="color:var(--primary);" id="report-net">€0.00</div>
+            <div class="card-sub">Income − money out</div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span>Transactions</span>
+              <span class="card-icon icon-info"><i class="fa-solid fa-receipt"></i></span>
+            </div>
+            <div class="card-amount" style="color:var(--info);" id="report-transaction-count">0</div>
+            <div class="card-sub" id="report-period-label">Selected period</div>
+          </div>
+        </div>
+
+        <div class="charts-grid">
+          <div class="chart-card">
+            <div class="chart-title-row">
+              <h3>Income vs Money Out</h3>
+              <span style="font-size:.72rem;color:var(--text-muted);" id="report-flow-caption">By month</span>
+            </div>
+            <div class="chart-container">
+              <canvas id="reportCashFlowChart"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-title-row">
+              <h3>Transaction Categories</h3>
+              <span style="font-size:.72rem;color:var(--text-muted);">Standard transactions</span>
+            </div>
+            <div class="chart-container">
+              <canvas id="reportCategoryChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="data-table-container">
+          <div class="table-header">
+            <div>
+              <h2>Loan Activity in Report</h2>
+              <div style="font-size:.74rem;color:var(--text-muted);margin-top:4px;">
+                Taken loans remain note-only and are shown here without changing cash balance.
+              </div>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Record Type</th>
+                  <th>Count</th>
+                  <th>Total Amount</th>
+                </tr>
+              </thead>
+              <tbody id="report-loan-summary-body"></tbody>
             </table>
           </div>
         </div>
@@ -1341,7 +1559,6 @@
        ========================================================================= */
 
     const SCRIPT_URL ="https://script.google.com/macros/s/AKfycbyCm1R7rUFmp8pWKMvEug6KJZTbsomtZ5Z8iObUxdxOsI4n_xMcNZvi49G9SjUtytTA1Q/exec";
-
     const REQUEST_TIMEOUT_MS = 20000;
     const SESSION_KEY = "finance_tracker_session_v2";
     const USER_KEY = "finance_tracker_user_v2";
@@ -1356,6 +1573,8 @@
     let pendingDelete = { rowId: null, sheet: null, kind: "record" };
     let flowChartInstance = null;
     let categoryChartInstance = null;
+    let reportCashFlowChartInstance = null;
+    let reportCategoryChartInstance = null;
     let isCustomCategory = false;
     let isLoading = false;
 
@@ -1392,6 +1611,12 @@
     function bindEvents() {
       document.getElementById("login-form").addEventListener("submit", handleLogin);
       document.getElementById("btn-logout").addEventListener("click", handleLogout);
+      document.getElementById("btn-export-pdf").addEventListener("click", exportAllDataToPdf);
+      document.getElementById("btn-export-report-pdf").addEventListener("click", exportReportToPdf);
+
+      document.getElementById("report-period").addEventListener("change", updateReportControls);
+      document.getElementById("report-year").addEventListener("change", renderReport);
+      document.getElementById("report-month").addEventListener("change", renderReport);
 
       document.getElementById("entry-form").addEventListener("submit", handleEntrySubmit);
       document.getElementById("note-form").addEventListener("submit", handleNoteSubmit);
@@ -1531,6 +1756,8 @@
       const settingsButton = document.getElementById("tab-settings");
       settingsButton.classList.toggle("hidden", currentUser?.role !== "admin");
 
+      initializeReportFilters();
+
       if (currentUser?.role !== "admin" && document.getElementById("view-settings").classList.contains("active")) {
         switchTab("dashboard");
       }
@@ -1655,9 +1882,15 @@
         panel.classList.remove("active");
       });
 
-      document.getElementById(
-        `tab-${tab === "dashboard" ? "dash" : tab === "notes" ? "notes" : "settings"}`
-      ).classList.add("active");
+      const tabId = tab === "dashboard"
+        ? "dash"
+        : tab === "notes"
+          ? "notes"
+          : tab === "reports"
+            ? "reports"
+            : "settings";
+
+      document.getElementById(`tab-${tabId}`).classList.add("active");
 
       document.getElementById(`view-${tab}`).classList.add("active");
 
@@ -1666,6 +1899,11 @@
 
       if (tab === "settings") {
         loadUsers();
+      }
+
+      if (tab === "reports") {
+        initializeReportFilters();
+        renderReport();
       }
 
       renderAll();
@@ -1790,6 +2028,10 @@
       renderTransactionsTable();
       renderNotesTable();
       updateCharts(totals.totalInc, totals.totalExp, totals.categories);
+
+      if (document.getElementById("view-reports").classList.contains("active")) {
+        renderReport();
+      }
     }
 
     function calculateTotals() {
@@ -1892,7 +2134,7 @@
 
         return `<tr>
           <td>${escapeHtml(dateStr)}</td>
-          <td><span class="badge ${isIncome ? "income" : "expense"}">${escapeHtml(item.type)}</span></td>
+          <td><span class="badge ${isIncome ? "income" : "expense"}"><i class="fa-solid ${isIncome ? "fa-arrow-down" : "fa-arrow-up"}" style="margin-right:5px;"></i>${escapeHtml(item.type)}</span></td>
           <td>${escapeHtml(item.category || "")}</td>
           <td>${formatMoney(val)}</td>
           <td>${escapeHtml(item.notes || "")}</td>
@@ -1949,7 +2191,7 @@
 
         return `<tr>
           <td>${escapeHtml(dateStr)}</td>
-          <td><span class="badge ${badgeClass}">${escapeHtml(item.loanType)}</span></td>
+          <td><span class="badge ${badgeClass}"><i class="fa-solid ${getNoteIcon(item.loanType)}" style="margin-right:5px;"></i>${escapeHtml(item.loanType)}</span></td>
           <td>${escapeHtml(item.person || "")}</td>
           <td>${formatMoney(val)}</td>
           <td>${escapeHtml(item.details || "")}</td>
@@ -1983,6 +2225,13 @@
       if (type === "Repayment Received") return "received";
       if (type === "Repayment Sent") return "sent";
       return "taken";
+    }
+
+    function getNoteIcon(type) {
+      if (type === "Given Loan") return "fa-hand-holding-dollar";
+      if (type === "Repayment Received") return "fa-arrow-down-left";
+      if (type === "Repayment Sent") return "fa-arrow-up-right";
+      return "fa-arrow-right-arrow-left";
     }
 
     function normalizeDate(value) {
@@ -2055,6 +2304,642 @@
           }
         }
       });
+    }
+
+
+    /* =========================================================================
+       REPORTS
+       ========================================================================= */
+
+    function initializeReportFilters(force = false) {
+      const yearSelect = document.getElementById("report-year");
+      const currentYear = new Date().getFullYear();
+
+      const years = new Set([currentYear]);
+
+      rawData.concat(notesData).forEach(function(item) {
+        const d = parseDateParts(item.date);
+        if (d) years.add(d.year);
+      });
+
+      const sortedYears = Array.from(years).sort((a, b) => b - a);
+      const existing = force ? "" : yearSelect.value;
+
+      yearSelect.innerHTML = sortedYears
+        .map(y => `<option value="${y}">${y}</option>`)
+        .join("");
+
+      if (existing && sortedYears.includes(Number(existing))) {
+        yearSelect.value = existing;
+      } else {
+        yearSelect.value = String(currentYear);
+      }
+
+      const today = new Date();
+      document.getElementById("report-month").value = String(today.getMonth());
+      updateReportControls();
+    }
+
+    function updateReportControls() {
+      const mode = document.getElementById("report-period").value;
+      const monthWrap = document.getElementById("report-month-wrap");
+      monthWrap.classList.toggle("hidden", mode !== "monthly");
+      renderReport();
+    }
+
+    function parseDateParts(value) {
+      const str = normalizeDate(value);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(str)) return null;
+
+      const [year, month, day] = str.split("-").map(Number);
+      return { year, month: month - 1, day };
+    }
+
+    function getReportMeta() {
+      const mode = document.getElementById("report-period").value;
+      const year = Number(document.getElementById("report-year").value);
+      const month = Number(document.getElementById("report-month").value);
+
+      return { mode, year, month };
+    }
+
+    function isInReportPeriod(item, meta) {
+      const d = parseDateParts(item.date);
+      if (!d) return false;
+
+      if (meta.mode === "monthly") {
+        return d.year === meta.year && d.month === meta.month;
+      }
+
+      return d.year === meta.year;
+    }
+
+    function getReportPeriodLabel(meta) {
+      if (meta.mode === "monthly") {
+        const names = [
+          "January", "February", "March", "April", "May", "June",
+          "July", "August", "September", "October", "November", "December"
+        ];
+        return `${names[meta.month]} ${meta.year}`;
+      }
+
+      return String(meta.year);
+    }
+
+    function buildReportData(meta) {
+      const entries = rawData.filter(item => isInReportPeriod(item, meta));
+      const notes = notesData.filter(item => isInReportPeriod(item, meta));
+
+      const categories = {};
+      let standardIncome = 0;
+      let standardExpense = 0;
+      let givenLoan = 0;
+      let repaymentReceived = 0;
+      let repaymentSent = 0;
+
+      entries.forEach(function(item) {
+        const val = roundCents(Number(item.amount) || 0);
+
+        if (item.type === "Income") {
+          standardIncome = roundCents(standardIncome + val);
+        } else {
+          standardExpense = roundCents(standardExpense + val);
+        }
+
+        const cat = String(item.category || "Other").trim() || "Other";
+        categories[cat] = roundCents((categories[cat] || 0) + val);
+      });
+
+      const loanTypes = {
+        "Given Loan": { count: 0, total: 0 },
+        "Repayment Received": { count: 0, total: 0 },
+        "Taken Loan": { count: 0, total: 0 },
+        "Repayment Sent": { count: 0, total: 0 }
+      };
+
+      notes.forEach(function(item) {
+        const type = loanTypes[item.loanType] ? item.loanType : "Taken Loan";
+        const val = roundCents(Number(item.amount) || 0);
+
+        loanTypes[type].count += 1;
+        loanTypes[type].total = roundCents(loanTypes[type].total + val);
+
+        if (type === "Given Loan") givenLoan = roundCents(givenLoan + val);
+        if (type === "Repayment Received") repaymentReceived = roundCents(repaymentReceived + val);
+        if (type === "Repayment Sent") repaymentSent = roundCents(repaymentSent + val);
+      });
+
+      const totalInc = roundCents(standardIncome + repaymentReceived);
+      const totalExp = roundCents(standardExpense + givenLoan + repaymentSent);
+      const net = roundCents(totalInc - totalExp);
+
+      return {
+        entries,
+        notes,
+        categories,
+        loanTypes,
+        standardIncome,
+        standardExpense,
+        givenLoan,
+        repaymentReceived,
+        repaymentSent,
+        totalInc,
+        totalExp,
+        net
+      };
+    }
+
+    function getReportFlowSeries(meta) {
+      if (meta.mode === "yearly") {
+        const labels = [
+          "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+        ];
+        const income = Array(12).fill(0);
+        const expense = Array(12).fill(0);
+
+        rawData.forEach(function(item) {
+          const d = parseDateParts(item.date);
+          if (!d || d.year !== meta.year) return;
+
+          const val = roundCents(Number(item.amount) || 0);
+          if (item.type === "Income") income[d.month] = roundCents(income[d.month] + val);
+          else expense[d.month] = roundCents(expense[d.month] + val);
+        });
+
+        notesData.forEach(function(item) {
+          const d = parseDateParts(item.date);
+          if (!d || d.year !== meta.year) return;
+
+          const val = roundCents(Number(item.amount) || 0);
+
+          if (item.loanType === "Given Loan") {
+            expense[d.month] = roundCents(expense[d.month] + val);
+          } else if (item.loanType === "Repayment Received") {
+            income[d.month] = roundCents(income[d.month] + val);
+          } else if (item.loanType === "Repayment Sent") {
+            expense[d.month] = roundCents(expense[d.month] + val);
+          }
+        });
+
+        return {
+          labels,
+          income,
+          expense,
+          caption: "By month"
+        };
+      }
+
+      const days = new Date(meta.year, meta.month + 1, 0).getDate();
+      const labels = [];
+      const income = Array(days).fill(0);
+      const expense = Array(days).fill(0);
+
+      for (let day = 1; day <= days; day++) labels.push(String(day));
+
+      rawData.forEach(function(item) {
+        const d = parseDateParts(item.date);
+        if (!d || d.year !== meta.year || d.month !== meta.month) return;
+
+        const val = roundCents(Number(item.amount) || 0);
+        if (item.type === "Income") income[d.day - 1] = roundCents(income[d.day - 1] + val);
+        else expense[d.day - 1] = roundCents(expense[d.day - 1] + val);
+      });
+
+      notesData.forEach(function(item) {
+        const d = parseDateParts(item.date);
+        if (!d || d.year !== meta.year || d.month !== meta.month) return;
+
+        const val = roundCents(Number(item.amount) || 0);
+
+        if (item.loanType === "Given Loan") {
+          expense[d.day - 1] = roundCents(expense[d.day - 1] + val);
+        } else if (item.loanType === "Repayment Received") {
+          income[d.day - 1] = roundCents(income[d.day - 1] + val);
+        } else if (item.loanType === "Repayment Sent") {
+          expense[d.day - 1] = roundCents(expense[d.day - 1] + val);
+        }
+      });
+
+      return {
+        labels,
+        income,
+        expense,
+        caption: "By day"
+      };
+    }
+
+    function renderReport() {
+      const yearSelect = document.getElementById("report-year");
+      if (!yearSelect || !yearSelect.value) return;
+
+      const meta = getReportMeta();
+      const report = buildReportData(meta);
+      const label = getReportPeriodLabel(meta);
+
+      document.getElementById("report-income").textContent = formatMoney(report.totalInc);
+      document.getElementById("report-expense").textContent = formatMoney(report.totalExp);
+      document.getElementById("report-net").textContent = formatMoney(report.net);
+      document.getElementById("report-transaction-count").textContent =
+        String(report.entries.length + report.notes.length);
+      document.getElementById("report-period-label").textContent = label;
+
+      document.getElementById("report-income-sub").textContent =
+        `Standard income ${formatMoney(report.standardIncome)} + received ${formatMoney(report.repaymentReceived)}`;
+
+      document.getElementById("report-expense-sub").textContent =
+        `Expenses ${formatMoney(report.standardExpense)} + given ${formatMoney(report.givenLoan)} + sent ${formatMoney(report.repaymentSent)}`;
+
+      document.getElementById("report-flow-caption").textContent =
+        getReportFlowSeries(meta).caption;
+
+      updateReportCharts(meta, report);
+      renderReportLoanSummary(report.loanTypes);
+    }
+
+    function updateReportCharts(meta, report) {
+      const flow = getReportFlowSeries(meta);
+
+      if (reportCashFlowChartInstance) {
+        reportCashFlowChartInstance.destroy();
+        reportCashFlowChartInstance = null;
+      }
+
+      if (reportCategoryChartInstance) {
+        reportCategoryChartInstance.destroy();
+        reportCategoryChartInstance = null;
+      }
+
+      reportCashFlowChartInstance = new Chart(
+        document.getElementById("reportCashFlowChart").getContext("2d"),
+        {
+          type: "line",
+          data: {
+            labels: flow.labels,
+            datasets: [
+              {
+                label: "Income",
+                data: flow.income,
+                borderColor: "#10b981",
+                backgroundColor: "rgba(16,185,129,.12)",
+                tension: .3,
+                fill: true
+              },
+              {
+                label: "Money Out",
+                data: flow.expense,
+                borderColor: "#ef4444",
+                backgroundColor: "rgba(239,68,68,.08)",
+                tension: .3,
+                fill: true
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: "index", intersect: false },
+            plugins: {
+              legend: { display: true, position: "top" }
+            },
+            scales: {
+              y: { beginAtZero: true }
+            }
+          }
+        }
+      );
+
+      const categoryEntries = Object.entries(report.categories)
+        .sort((a, b) => b[1] - a[1]);
+
+      reportCategoryChartInstance = new Chart(
+        document.getElementById("reportCategoryChart").getContext("2d"),
+        {
+          type: "doughnut",
+          data: {
+            labels: categoryEntries.map(x => x[0]),
+            datasets: [{
+              data: categoryEntries.map(x => x[1]),
+              borderWidth: 2,
+              borderColor: "#ffffff"
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "right"
+              }
+            }
+          }
+        }
+      );
+    }
+
+    function renderReportLoanSummary(loanTypes) {
+      const order = [
+        "Given Loan",
+        "Repayment Received",
+        "Taken Loan",
+        "Repayment Sent"
+      ];
+
+      const rows = order.map(function(type) {
+        const item = loanTypes[type];
+
+        return `<tr>
+          <td><span class="badge ${getNoteBadgeClass(type)}">
+            <i class="fa-solid ${getNoteIcon(type)}" style="margin-right:5px;"></i>${escapeHtml(type)}
+          </span></td>
+          <td>${item.count}</td>
+          <td>${formatMoney(item.total)}</td>
+        </tr>`;
+      });
+
+      document.getElementById("report-loan-summary-body").innerHTML = rows.join("");
+    }
+
+    function getReportRowsForPdf(meta, report) {
+      const entries = report.entries
+        .slice()
+        .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+
+      const notes = report.notes
+        .slice()
+        .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+
+      return { entries, notes };
+    }
+
+    async function exportAllDataToPdf() {
+      const btn = document.getElementById("btn-export-pdf");
+      setButtonLoading(btn, true, "Creating PDF…");
+
+      try {
+        const jspdfApi = window.jspdf;
+        if (!jspdfApi || !jspdfApi.jsPDF) {
+          throw new Error("PDF library could not be loaded. Check your internet connection.");
+        }
+
+        const doc = new jspdfApi.jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+        addPdfHeader(doc, "Finance Tracker — Complete Export");
+
+        const totals = calculateTotals();
+        doc.setFontSize(10);
+        doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 22);
+        doc.text(`User: ${currentUser?.username || "User"}`, 14, 28);
+
+        doc.autoTable({
+          startY: 35,
+          head: [["Summary", "Amount"]],
+          body: [
+            ["Total Income", formatMoney(totals.totalInc)],
+            ["Total Money Out", formatMoney(totals.totalExp)],
+            ["Net Balance", formatMoney(totals.netBal)],
+            ["Outstanding Given Loans", formatMoney(totals.outstandingGiven)]
+          ],
+          theme: "grid",
+          styles: { fontSize: 9 }
+        });
+
+        let y = doc.lastAutoTable.finalY + 10;
+
+        doc.setFontSize(13);
+        doc.text("All Transactions", 14, y);
+        doc.autoTable({
+          startY: y + 4,
+          head: [["Date", "Type", "Category", "Amount", "Notes"]],
+          body: rawData
+            .slice()
+            .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+            .map(item => [
+              normalizeDate(item.date),
+              item.type,
+              item.category || "",
+              formatMoney(Number(item.amount) || 0),
+              item.notes || ""
+            ]),
+          theme: "striped",
+          styles: { fontSize: 8, cellPadding: 2.5 },
+          headStyles: { fontSize: 8 },
+          columnStyles: { 4: { cellWidth: 72 } },
+          margin: { left: 14, right: 14 }
+        });
+
+        y = doc.lastAutoTable.finalY + 10;
+        if (y > 175) {
+          doc.addPage();
+          y = 18;
+        }
+
+        doc.setFontSize(13);
+        doc.text("Loans, Debts & Repayments", 14, y);
+        doc.autoTable({
+          startY: y + 4,
+          head: [["Date", "Record Type", "Person", "Amount", "Details"]],
+          body: notesData
+            .slice()
+            .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+            .map(item => [
+              normalizeDate(item.date),
+              item.loanType,
+              item.person || "",
+              formatMoney(Number(item.amount) || 0),
+              item.details || ""
+            ]),
+          theme: "striped",
+          styles: { fontSize: 8, cellPadding: 2.5 },
+          headStyles: { fontSize: 8 },
+          columnStyles: { 4: { cellWidth: 72 } },
+          margin: { left: 14, right: 14 }
+        });
+
+        addPdfFooters(doc);
+        doc.save(`finance-tracker-export-${localDateString()}.pdf`);
+        showToast("Complete PDF export created successfully");
+      } catch (err) {
+        console.error(err);
+        showToast(err.message || "Could not create PDF.", "error");
+      } finally {
+        setButtonLoading(btn, false);
+      }
+    }
+
+    async function exportReportToPdf() {
+      const btn = document.getElementById("btn-export-report-pdf");
+      setButtonLoading(btn, true, "Creating PDF…");
+
+      try {
+        const jspdfApi = window.jspdf;
+        if (!jspdfApi || !jspdfApi.jsPDF) {
+          throw new Error("PDF library could not be loaded. Check your internet connection.");
+        }
+
+        const meta = getReportMeta();
+        const report = buildReportData(meta);
+        const label = getReportPeriodLabel(meta);
+
+        const doc = new jspdfApi.jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+        addPdfHeader(doc, `Finance Tracker — ${label} Report`);
+
+        doc.setFontSize(10);
+        doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 22);
+        doc.text(`Report period: ${label}`, 14, 28);
+        doc.text(`User: ${currentUser?.username || "User"}`, 14, 34);
+
+        doc.autoTable({
+          startY: 41,
+          head: [["Report Summary", "Amount"]],
+          body: [
+            ["Income", formatMoney(report.totalInc)],
+            ["Money Out", formatMoney(report.totalExp)],
+            ["Net", formatMoney(report.net)],
+            ["Standard Income", formatMoney(report.standardIncome)],
+            ["Standard Expenses", formatMoney(report.standardExpense)],
+            ["Given Loans", formatMoney(report.givenLoan)],
+            ["Repayments Received", formatMoney(report.repaymentReceived)],
+            ["Repayments Sent", formatMoney(report.repaymentSent)]
+          ],
+          theme: "grid",
+          styles: { fontSize: 8 }
+        });
+
+        let y = doc.lastAutoTable.finalY + 9;
+        doc.setFontSize(12);
+        doc.text("Loan Activity", 14, y);
+
+        doc.autoTable({
+          startY: y + 4,
+          head: [["Record Type", "Count", "Total"]],
+          body: [
+            ["Given Loan", report.loanTypes["Given Loan"].count, formatMoney(report.loanTypes["Given Loan"].total)],
+            ["Repayment Received", report.loanTypes["Repayment Received"].count, formatMoney(report.loanTypes["Repayment Received"].total)],
+            ["Taken Loan", report.loanTypes["Taken Loan"].count, formatMoney(report.loanTypes["Taken Loan"].total)],
+            ["Repayment Sent", report.loanTypes["Repayment Sent"].count, formatMoney(report.loanTypes["Repayment Sent"].total)]
+          ],
+          theme: "striped",
+          styles: { fontSize: 8 }
+        });
+
+        y = doc.lastAutoTable.finalY + 9;
+
+        // Add the two live report charts to the PDF when the browser exposes
+        // Chart.js canvas snapshots.
+        const flowCanvas = document.getElementById("reportCashFlowChart");
+        const categoryCanvas = document.getElementById("reportCategoryChart");
+        if (flowCanvas && categoryCanvas) {
+          if (y > 105) {
+            doc.addPage();
+            y = 18;
+          }
+
+          try {
+            const flowImage = flowCanvas.toDataURL("image/png", 1.0);
+            const categoryImage = categoryCanvas.toDataURL("image/png", 1.0);
+            doc.setFontSize(12);
+            doc.text("Report Charts", 14, y);
+            doc.addImage(flowImage, "PNG", 14, y + 4, 122, 72);
+            doc.addImage(categoryImage, "PNG", 142, y + 4, 122, 72);
+            y += 82;
+          } catch (_) {
+            // Continue with the tabular report if chart snapshots are unavailable.
+          }
+        }
+
+        if (report.entries.length) {
+          if (y > 175) {
+            doc.addPage();
+            y = 18;
+          }
+
+          doc.setFontSize(12);
+          doc.text("Transactions in Period", 14, y);
+
+          doc.autoTable({
+            startY: y + 4,
+            head: [["Date", "Type", "Category", "Amount", "Notes"]],
+            body: report.entries
+              .slice()
+              .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+              .map(item => [
+                normalizeDate(item.date),
+                item.type,
+                item.category || "",
+                formatMoney(Number(item.amount) || 0),
+                item.notes || ""
+              ]),
+            theme: "striped",
+            styles: { fontSize: 7.5, cellPadding: 2.3 },
+            columnStyles: { 4: { cellWidth: 72 } },
+            margin: { left: 14, right: 14 }
+          });
+
+          y = doc.lastAutoTable.finalY + 9;
+        }
+
+        if (report.notes.length) {
+          if (y > 175) {
+            doc.addPage();
+            y = 18;
+          }
+
+          doc.setFontSize(12);
+          doc.text("Loans & Repayments in Period", 14, y);
+
+          doc.autoTable({
+            startY: y + 4,
+            head: [["Date", "Record Type", "Person", "Amount", "Details"]],
+            body: report.notes
+              .slice()
+              .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+              .map(item => [
+                normalizeDate(item.date),
+                item.loanType,
+                item.person || "",
+                formatMoney(Number(item.amount) || 0),
+                item.details || ""
+              ]),
+            theme: "striped",
+            styles: { fontSize: 7.5, cellPadding: 2.3 },
+            columnStyles: { 4: { cellWidth: 72 } },
+            margin: { left: 14, right: 14 }
+          });
+        }
+
+        addPdfFooters(doc);
+        doc.save(`finance-tracker-report-${label.replace(/\s+/g, "-").toLowerCase()}.pdf`);
+        showToast("Report PDF created successfully");
+      } catch (err) {
+        console.error(err);
+        showToast(err.message || "Could not create report PDF.", "error");
+      } finally {
+        setButtonLoading(btn, false);
+      }
+    }
+
+    function addPdfHeader(doc, title) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.text(title, 14, 15);
+      doc.setFont("helvetica", "normal");
+    }
+
+    function addPdfFooters(doc) {
+      const pages = doc.internal.getNumberOfPages();
+
+      for (let i = 1; i <= pages; i++) {
+        doc.setPage(i);
+        const pageHeight = doc.internal.pageSize.getHeight();
+        doc.setFontSize(7.5);
+        doc.setTextColor(100);
+        doc.text(
+          `Finance Tracker • Page ${i} of ${pages}`,
+          14,
+          pageHeight - 8
+        );
+        doc.setTextColor(0);
+      }
     }
 
     /* =========================================================================
