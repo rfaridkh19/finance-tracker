@@ -24,14 +24,8 @@
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
     body { background-color: var(--bg); color: var(--text); padding-bottom: 40px; min-height: 100vh; }
-    .container { max-width: 1120px; margin: 0 auto; padding: 20px 16px; display: none; }
+    .container { max-width: 1120px; margin: 0 auto; padding: 20px 16px; }
     
-    /* LOGIN SCREEN */
-    .login-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #0f172a; display: flex; justify-content: center; align-items: center; z-index: 100000; }
-    .login-card { background: #ffffff; width: 90%; max-width: 400px; padding: 32px; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2); text-align: center; }
-    .login-card h2 { margin-bottom: 8px; color: var(--text); }
-    .login-card p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px; }
-
     header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 24px; background: var(--card-bg); padding: 16px 24px; border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); animation: slideDown 0.4s ease-out; }
     .brand { display: flex; align-items: center; gap: 12px; font-size: 1.3rem; font-weight: 700; color: var(--primary); }
     .header-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -76,7 +70,6 @@
     table { width: 100%; border-collapse: collapse; text-align: left; min-width: 600px; }
     th, td { padding: 14px 20px; border-bottom: 1px solid var(--border); font-size: 0.92rem; }
     th { background: #f8fafc; color: var(--text-muted); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
-    tr { break-inside: avoid !important; page-break-inside: avoid !important; }
 
     .badge { padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; display: inline-block; }
     .badge.income, .badge.received { background: #d1fae5; color: #065f46; }
@@ -84,29 +77,24 @@
     .badge.given { background: #fef3c7; color: #92400e; }
     .badge.taken { background: #e0e7ff; color: #3730a3; }
 
-    /* Modals & Toasts */
+    /* Modals & Toasts (Standardised) */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 9999; opacity: 0; pointer-events: none; transition: all 0.3s ease-out; }
     .modal-overlay.active { opacity: 1; pointer-events: auto; }
     .modal-card { background: var(--card-bg); border-radius: 16px; width: 90%; max-width: 480px; padding: 26px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); transform: scale(0.9) translateY(20px); opacity: 0; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
     .modal-overlay.active .modal-card { transform: scale(1) translateY(0); opacity: 1; }
     .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    .form-group { margin-bottom: 16px; display: flex; flex-direction: column; gap: 6px; text-align: left; }
+    .form-group { margin-bottom: 16px; display: flex; flex-direction: column; gap: 6px; }
     .form-group label { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); }
-    .input-field { padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; outline: none; font-size: 0.95rem; background: #f8fafc; width: 100%; }
+    .input-field { padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; outline: none; font-size: 0.95rem; background: #f8fafc;}
     .category-input-group { display: flex; gap: 8px; }
     .category-input-group > * { flex: 1; }
     .category-input-group .btn-icon { flex: 0 0 42px; height: 42px; }
     
-    .toast-container { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 10px; z-index: 100000; pointer-events: none; }
+    .toast-container { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 10px; z-index: 10000; pointer-events: none; }
     .toast { padding: 14px 20px; border-radius: 10px; color: white; display: flex; align-items: center; gap: 12px; font-weight: 500; font-size: 0.95rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); pointer-events: auto; transform: translateX(120%); opacity: 0; animation: slideInRight 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
     .toast.success { background-color: var(--success); }
     .toast.error { background-color: var(--danger); }
     .toast.hiding { animation: slideOutRight 0.3s ease-in forwards; }
-
-    /* PDF Clean Export Header */
-    .pdf-header { display: none; padding: 20px; text-align: center; border-bottom: 2px solid #333; margin-bottom: 20px; }
-    .pdf-header h1 { font-size: 1.5rem; color: #111; }
-    .pdf-header p { font-size: 0.85rem; color: #555; }
 
     @keyframes fadeInScale { from { opacity: 0; transform: scale(0.98) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
     @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
@@ -121,27 +109,7 @@
 
   <div id="toast-container" class="toast-container"></div>
 
-  <!-- LOGIN SCREEN -->
-  <div id="login-overlay" class="login-overlay">
-    <div class="login-card">
-      <i class="fa-solid fa-lock" style="font-size: 2.5rem; color: var(--primary); margin-bottom: 12px;"></i>
-      <h2>Welcome Back</h2>
-      <p>Please log in to access your finance tracker.</p>
-      <form id="login-form">
-        <div class="form-group">
-          <label>Email Address</label>
-          <input type="email" id="login-email" class="input-field" placeholder="admin@gmail.com" required>
-        </div>
-        <div class="form-group">
-          <label>Password</label>
-          <input type="password" id="login-password" class="input-field" placeholder="••••••••" required>
-        </div>
-        <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 10px; padding: 12px;">Login</button>
-      </form>
-    </div>
-  </div>
-
-  <div class="container" id="app-container">
+  <div class="container">
     <header>
       <div class="brand"><i class="fa-solid fa-wallet"></i><span>Finance Tracker</span></div>
       <div class="header-controls">
@@ -150,7 +118,6 @@
         </select>
         <button class="btn-icon" onclick="loadData()"><i class="fa-solid fa-rotate-right" id="refresh-icon"></i></button>
         <button class="btn btn-primary" id="btn-add-entry" onclick="openCreateModal('entry')"><i class="fa-solid fa-plus"></i><span>New Entry</span></button>
-        <button class="btn btn-secondary" onclick="logout()"><i class="fa-solid fa-right-from-bracket"></i></button>
       </div>
     </header>
 
@@ -158,7 +125,6 @@
       <button class="tab-btn active" id="tab-dash" onclick="switchTab('dashboard')"><i class="fa-solid fa-chart-line"></i><span>Dashboard</span></button>
       <button class="tab-btn" id="tab-notes" onclick="switchTab('notes')"><i class="fa-solid fa-hand-holding-dollar"></i><span>Loans & Notes</span></button>
       <button class="tab-btn" id="tab-yearly" onclick="switchTab('yearly')"><i class="fa-solid fa-calendar-check"></i><span>Yearly Report</span></button>
-      <button class="tab-btn" id="tab-settings" onclick="switchTab('settings')"><i class="fa-solid fa-gear"></i><span>Settings</span></button>
     </div>
 
     <!-- DASHBOARD VIEW -->
@@ -174,7 +140,7 @@
         <div class="chart-card"><h3 style="margin-bottom: 15px; font-size: 1rem; color: var(--text-muted);">Expenses by Category</h3><div class="chart-container"><canvas id="categoryChart"></canvas></div></div>
       </div>
 
-      <!-- Controls & Filters -->
+      <!-- Controls & Filters for Dashboard Table -->
       <div class="control-bar">
         <div class="filter-group">
           <select id="filter-year" class="filter-select" onchange="applyFilters()"><option value="All">All Years</option></select>
@@ -191,15 +157,11 @@
             <option value="date-desc">Latest Date</option><option value="amount-desc">Amount: High to Low</option><option value="amount-asc">Amount: Low to High</option>
           </select>
         </div>
-        <button class="btn btn-secondary" onclick="exportTableToPDF('export-dashboard-table', 'Transactions_Report')"><i class="fa-solid fa-file-pdf"></i> Export PDF</button>
+        <button class="btn btn-secondary" onclick="exportTableToPDF('export-dashboard-table', 'Transactions_Report')"><i class="fa-solid fa-file-pdf"></i> Export Report</button>
       </div>
 
       <div class="data-table-container" id="export-dashboard-table">
-        <div class="pdf-header" id="pdf-header">
-          <h1>Transactions Financial Report</h1>
-          <p id="pdf-date-sub"></p>
-        </div>
-        <div class="table-header hide-on-export"><h2>Standard Transactions</h2></div>
+        <div class="table-header"><h2>Standard Transactions</h2></div>
         <div class="table-responsive">
           <table>
             <thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Amount</th><th>Notes</th><th style="text-align: right;" class="hide-on-export">Actions</th></tr></thead>
@@ -218,7 +180,7 @@
          <button class="btn btn-primary" onclick="openCreateModal('note')"><i class="fa-solid fa-plus"></i> Add Loan Record</button>
       </div>
 
-      <div class="data-table-container">
+      <div class="data-table-container" id="export-notes-table">
         <div class="table-header"><h2>Loans, Debts & Repayments</h2></div>
         <div class="table-responsive">
           <table>
@@ -256,28 +218,9 @@
         </div>
       </div>
     </div>
-
-    <!-- SETTINGS VIEW -->
-    <div id="view-settings" class="tab-content">
-      <div class="card" style="max-width: 500px; margin: 0 auto;">
-        <h3 style="margin-bottom: 20px;"><i class="fa-solid fa-user-shield"></i> Security & Credentials</h3>
-        <form id="settings-form">
-          <div class="form-group">
-            <label>Login Email</label>
-            <input type="email" id="settings-email" class="input-field" required>
-          </div>
-          <div class="form-group">
-            <label>New Password</label>
-            <input type="text" id="settings-password" class="input-field" required>
-          </div>
-          <button type="submit" class="btn btn-primary" style="margin-top: 10px;"><i class="fa-solid fa-floppy-disk"></i> Save Credentials</button>
-        </form>
-      </div>
-    </div>
-
   </div>
 
-  <!-- ENTRY MODAL -->
+  <!-- ENTRY MODAL (Sheet1) -->
   <div id="entry-modal" class="modal-overlay">
     <div class="modal-card">
       <div class="modal-header"><h3 id="entry-modal-title">New Transaction</h3><button class="btn-icon" onclick="closeModal('entry-modal')"><i class="fa-solid fa-xmark"></i></button></div>
@@ -291,8 +234,8 @@
             <select id="txn-category-select" class="input-field" required>
               <option value="Food & Dining">Food & Dining</option><option value="Rent & Housing">Rent & Housing</option><option value="Transportation">Transportation</option><option value="Shopping">Shopping</option><option value="Utilities">Utilities</option><option value="Entertainment">Entertainment</option><option value="Salary">Salary</option><option value="Health">Health</option><option value="Other">Other</option>
             </select>
-            <input type="text" id="txn-category-input" class="input-field" style="display: none;" placeholder="Custom category...">
-            <button type="button" class="btn-icon" id="btn-toggle-category" onclick="toggleCategoryInput()"><i class="fa-solid fa-plus"></i></button>
+            <input type="text" id="txn-category-input" class="input-field" style="display: none;" placeholder="Type custom category...">
+            <button type="button" class="btn-icon" id="btn-toggle-category" onclick="toggleCategoryInput()" title="Add Custom Category"><i class="fa-solid fa-plus"></i></button>
           </div>
         </div>
         <div class="form-group"><label>Amount</label><input type="number" id="txn-amount" step="0.01" class="input-field" required></div>
@@ -305,7 +248,7 @@
     </div>
   </div>
 
-  <!-- NOTE MODAL -->
+  <!-- NOTE MODAL (Notes Sheet) -->
   <div id="note-modal" class="modal-overlay">
     <div class="modal-card">
       <div class="modal-header"><h3 id="note-modal-title">New Loan Record</h3><button class="btn-icon" onclick="closeModal('note-modal')"><i class="fa-solid fa-xmark"></i></button></div>
@@ -337,56 +280,14 @@
   </div>
 
   <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyaJh1gkqEJbVOi0KP6msHHaohb-eOelUad1Ng1Y-yOJq_XH8gIDQpD2d0LovifROraRg/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzwXD0ijxlRZ1xPpjfwTUim_MnaBNiJydsjPmwkeMGc-22L5-raj4TKf5l3b47D1ep79Q/exec";
     
-    let rawData = [], notesData = [], userData = null;
+    let rawData = [], notesData = [];
     let pendingDelete = { rowId: null, sheet: null };
     let flowChartInstance = null, categoryChartInstance = null, yearlyChartInstance = null;
     let isCustomCategory = false;
 
-    // Check Login state on startup
-    window.onload = function() {
-      if(sessionStorage.getItem('isLoggedIn') === 'true') {
-        document.getElementById('login-overlay').style.display = 'none';
-        document.getElementById('app-container').style.display = 'block';
-        loadData();
-      }
-    };
-
-    // LOGIN SUBMIT
-    document.getElementById('login-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const em = document.getElementById('login-email').value.trim();
-      const pw = document.getElementById('login-password').value.trim();
-      
-      showToast('Verifying credentials...', 'success');
-      try {
-        const users = await fetch(`${SCRIPT_URL}?action=read&sheet=Users`).then(r => r.json());
-        if(Array.isArray(users) && users.length > 0) {
-          userData = users[0];
-          if(String(userData.email).toLowerCase() === em.toLowerCase() && String(userData.password) === pw) {
-            sessionStorage.setItem('isLoggedIn', 'true');
-            document.getElementById('login-overlay').style.display = 'none';
-            document.getElementById('app-container').style.display = 'block';
-            document.getElementById('settings-email').value = userData.email;
-            document.getElementById('settings-password').value = userData.password;
-            loadData();
-            showToast('Welcome back!');
-          } else {
-            showToast('Invalid Email or Password', 'error');
-          }
-        } else {
-          showToast('Users sheet is empty or not configured.', 'error');
-        }
-      } catch(err) {
-        showToast('Login error. Check connection.', 'error');
-      }
-    });
-
-    function logout() {
-      sessionStorage.removeItem('isLoggedIn');
-      location.reload();
-    }
+    window.onload = loadData;
 
     function showToast(message, type = 'success') {
       const container = document.getElementById('toast-container');
@@ -417,19 +318,13 @@
       return `${curr}${roundCents(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
 
-    // TAB SWITCHING (Fixed Dashboard reload issue)
     function switchTab(tab) {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
       document.getElementById(`tab-${tab}`).classList.add('active');
       document.getElementById(`view-${tab}`).classList.add('active');
       document.getElementById('btn-add-entry').style.display = (tab === 'dashboard') ? 'inline-flex' : 'none';
-      
-      if(tab === 'dashboard') {
-        applyFilters(); // Re-trigger calculations and chart resize
-      } else if(tab === 'yearly') {
-        renderYearlyReport();
-      }
+      if(tab === 'yearly') renderYearlyReport();
     }
 
     function openModal(id) { document.getElementById(id).classList.add('active'); }
@@ -438,18 +333,12 @@
     async function loadData() {
       document.getElementById("refresh-icon").classList.add("spin");
       try {
-        const [res1, res2, res3] = await Promise.all([
+        const [res1, res2] = await Promise.all([
           fetch(`${SCRIPT_URL}?action=read&sheet=Sheet1`).then(r => r.json()),
-          fetch(`${SCRIPT_URL}?action=read&sheet=Notes`).then(r => r.json()),
-          fetch(`${SCRIPT_URL}?action=read&sheet=Users`).then(r => r.json())
+          fetch(`${SCRIPT_URL}?action=read&sheet=Notes`).then(r => r.json())
         ]);
         rawData = Array.isArray(res1) ? res1 : [];
         notesData = Array.isArray(res2) ? res2 : [];
-        if(Array.isArray(res3) && res3.length > 0) {
-          userData = res3[0];
-          document.getElementById('settings-email').value = userData.email || '';
-          document.getElementById('settings-password').value = userData.password || '';
-        }
         populateYearDropdowns();
         renderAll();
       } catch (err) { showToast("Failed to load data.", "error"); } 
@@ -467,6 +356,7 @@
       
       let dashOpts = '<option value="All">All Years</option>';
       let reportOpts = '';
+      
       if(sortedYears.length === 0) { sortedYears.push(new Date().getFullYear().toString()); }
       
       sortedYears.forEach(y => {
@@ -495,9 +385,11 @@
         return true;
       });
 
+      // Sorting
       filtered.sort((a, b) => {
         if (fSort === 'amount-desc') return b.amount - a.amount;
         if (fSort === 'amount-asc') return a.amount - b.amount;
+        // date-desc default
         return new Date(b.date || 0) - new Date(a.date || 0);
       });
 
@@ -531,6 +423,7 @@
         </tr>`;
       });
 
+      // Math for Loans to add to main dashboard totals
       let givenLoan = 0, repayReceived = 0, repaySent = 0;
       notesData.forEach(item => {
         if (item.loanType === "Given Loan") givenLoan += item.amount;
@@ -576,13 +469,17 @@
       });
     }
 
+    // --- YEARLY REPORT LOGIC ---
     function renderYearlyReport() {
       const year = document.getElementById("report-year-select").value;
       if(!year) return;
 
       let yInc = 0, yExp = 0, maxExp = 0, maxExpName = '-';
       let lTaken = 0, lGiven = 0, lRepayRecv = 0, lRepaySent = 0;
-      let mthInc = Array(12).fill(0), mthExp = Array(12).fill(0);
+      
+      // Monthly data arrays for the chart [Jan ... Dec]
+      let mthInc = Array(12).fill(0);
+      let mthExp = Array(12).fill(0);
 
       rawData.forEach(item => {
         if(item.date && String(item.date).startsWith(year)) {
@@ -616,8 +513,10 @@
       document.getElementById("yr-loan-given").innerText = formatMoney(lGiven);
       document.getElementById("yr-repay-recv").innerText = formatMoney(lRepayRecv);
 
+      // Render Yearly Line Chart
       const ctx = document.getElementById('yearlyTrendChart').getContext('2d');
       if (yearlyChartInstance) yearlyChartInstance.destroy();
+      
       yearlyChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
@@ -631,6 +530,7 @@
       });
     }
 
+    // --- CHARTS (DASHBOARD) ---
     function updateDashboardCharts(totalInc, totalExp, categories) {
       const ctxFlow = document.getElementById('cashFlowChart').getContext('2d');
       if (flowChartInstance) flowChartInstance.destroy();
@@ -650,52 +550,30 @@
       });
     }
 
-    // PDF EXPORT FIX
+    // --- PDF EXPORT EXPORT LOGIC ---
     function exportTableToPDF(containerId, filename) {
       const element = document.getElementById(containerId);
-      const pdfHeader = document.getElementById('pdf-header');
-      document.getElementById('pdf-date-sub').innerText = `Generated on: ${new Date().toLocaleDateString()}`;
       
-      pdfHeader.style.display = 'block';
+      // Temporarily hide action columns for clean export
       const hideElements = element.querySelectorAll('.hide-on-export');
       hideElements.forEach(el => el.style.display = 'none');
 
       const opt = {
-        margin:       [0.4, 0.4, 0.4, 0.4],
+        margin:       0.4,
         filename:     `${filename}_${new Date().toISOString().split('T')[0]}.pdf`,
         image:        { type: 'jpeg', quality: 0.98 },
         html2canvas:  { scale: 2, useCORS: true },
-        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
-        pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
       };
 
       html2pdf().set(opt).from(element).save().then(() => {
-        pdfHeader.style.display = 'none';
+        // Restore action columns
         hideElements.forEach(el => el.style.display = '');
         showToast('PDF Exported Successfully');
       });
     }
 
-    // SAVE CREDENTIALS IN SETTINGS
-    document.getElementById('settings-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const em = document.getElementById('settings-email').value.trim();
-      const pw = document.getElementById('settings-password').value.trim();
-      const rowId = userData ? userData.rowId : 2;
-
-      showToast('Updating settings...', 'success');
-      try {
-        await fetch(SCRIPT_URL, {
-          method: "POST", mode: "no-cors",
-          body: JSON.stringify({ action: "update", sheet: "Users", rowId: rowId, email: em, password: pw })
-        });
-        userData = { rowId, email: em, password: pw };
-        showToast('Credentials updated successfully!');
-      } catch(err) {
-        showToast('Failed to update credentials', 'error');
-      }
-    });
-
+    // --- MODAL CONTROLS & CRUD ---
     function openCreateModal(type) {
       const today = new Date().toISOString().split('T')[0];
       if (type === 'entry') {
