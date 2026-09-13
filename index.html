@@ -381,44 +381,43 @@
          cross-origin response, we transparently fall back to the old
          fire-and-forget "no-cors" mode instead of breaking the app.
        ========================================================================= */
+    // Promise.race-based timeout. Deliberately avoids AbortController/AbortSignal:
+    // Claude's own artifact preview relays fetch calls through postMessage for its
+    // sandbox, and AbortSignal can't be structured-cloned, which throws a
+    // DataCloneError. This approach gives the same "give up after N seconds"
+    // behavior without touching AbortSignal, so it works both in-preview and once hosted.
+    function withTimeout(promise, ms) {
+      let timer;
+      const timeout = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error('Request timed out — check your connection and try again.')), ms);
+      });
+      return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+    }
+
     async function fetchJSON(url) {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-      try {
-        const res = await fetch(url, { signal: controller.signal });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return await res.json();
-      } finally {
-        clearTimeout(timer);
-      }
+      const res = await withTimeout(fetch(url), REQUEST_TIMEOUT_MS);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
     }
 
     async function apiRequestCors(payload) {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-      try {
-        const res = await fetch(SCRIPT_URL, {
-          method: 'POST',
-          body: JSON.stringify(payload), // no custom headers -> stays a "simple request", avoids CORS preflight
-          signal: controller.signal
-        });
-        if (!res.ok) throw new Error(`Server responded with status ${res.status}`);
-        let data = null;
-        try { data = await res.json(); } catch (_) { /* backend didn't return JSON; treat as success */ }
-        if (data && ((data.status && String(data.status).toLowerCase() === 'error') || data.error || data.success === false)) {
-          throw new Error(data.message || data.error || 'The sheet reported an error while saving.');
-        }
-        return data;
-      } finally {
-        clearTimeout(timer);
+      const res = await withTimeout(fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify(payload) // no custom headers -> stays a "simple request", avoids CORS preflight
+      }), REQUEST_TIMEOUT_MS);
+      if (!res.ok) throw new Error(`Server responded with status ${res.status}`);
+      let data = null;
+      try { data = await res.json(); } catch (_) { /* backend didn't return JSON; treat as success */ }
+      if (data && ((data.status && String(data.status).toLowerCase() === 'error') || data.error || data.success === false)) {
+        throw new Error(data.message || data.error || 'The sheet reported an error while saving.');
       }
+      return data;
     }
 
     async function apiRequest(payload) {
       try {
         return await apiRequestCors(payload);
       } catch (err) {
-        if (err.name === 'AbortError') throw new Error('Request timed out — check your connection and try again.');
         if (err instanceof TypeError) {
           // Response couldn't be read cross-origin. Fall back to fire-and-forget
           // so the write still goes through, same as the previous behavior.
