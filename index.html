@@ -1202,7 +1202,7 @@
           <div class="card">
             <div class="card-header">
               <span>Total Income</span>
-              <span class="card-icon icon-success"><i class="fa-solid fa-arrow-down-left"></i></span>
+              <span class="card-icon icon-success"><i class="fa-solid fa-arrow-down"></i></span>
             </div>
             <div class="card-amount" style="color:var(--success);" id="total-income">€0.00</div>
             <div class="card-sub">Income + repayment received</div>
@@ -1211,7 +1211,7 @@
           <div class="card">
             <div class="card-header">
               <span>Total Money Out</span>
-              <span class="card-icon icon-danger"><i class="fa-solid fa-arrow-up-right"></i></span>
+              <span class="card-icon icon-danger"><i class="fa-solid fa-arrow-up"></i></span>
             </div>
             <div class="card-amount" style="color:var(--danger);" id="total-expense">€0.00</div>
             <div class="card-sub">Expenses + loans given + repayments sent</div>
@@ -1241,8 +1241,8 @@
             <div class="chart-title-row">
               <h3><i class="fa-solid fa-arrow-right-arrow-left" style="margin-right:7px;color:var(--primary);"></i>Cash Flow (In vs Out)</h3>
               <div class="flow-legend">
-                <span><i class="flow-dot income"></i><i class="fa-solid fa-arrow-down-left" style="color:var(--success);"></i> Income</span>
-                <span><i class="flow-dot expense"></i><i class="fa-solid fa-arrow-up-right" style="color:var(--danger);"></i> Expense</span>
+                <span><i class="flow-dot income"></i><i class="fa-solid fa-arrow-down" style="color:var(--success);"></i> Income</span>
+                <span><i class="flow-dot expense"></i><i class="fa-solid fa-arrow-up" style="color:var(--danger);"></i> Expense</span>
               </div>
             </div>
             <div class="chart-container">
@@ -1302,7 +1302,7 @@
             <div class="card-sub" id="loan-given-sub">Money you lent out</div>
           </div>
           <div class="card loan-overview-card">
-            <div class="card-header"><span>Repayments Received</span><span class="card-icon icon-success"><i class="fa-solid fa-arrow-down-left"></i></span></div>
+            <div class="card-header"><span>Repayments Received</span><span class="card-icon icon-success"><i class="fa-solid fa-arrow-down"></i></span></div>
             <div class="card-amount" style="color:var(--success);" id="loan-received-total">€0.00</div>
             <div class="card-sub" id="loan-received-sub">Money returned to you</div>
           </div>
@@ -1452,8 +1452,8 @@
             <div class="chart-title-row">
               <h3><i class="fa-solid fa-chart-line" style="margin-right:7px;color:var(--primary);"></i>Income vs Money Out</h3>
               <div class="flow-legend">
-                <span><i class="flow-dot income"></i><i class="fa-solid fa-arrow-down-left" style="color:var(--success);"></i> Income</span>
-                <span><i class="flow-dot expense"></i><i class="fa-solid fa-arrow-up-right" style="color:var(--danger);"></i> Money Out</span>
+                <span><i class="flow-dot income"></i><i class="fa-solid fa-arrow-down" style="color:var(--success);"></i> Income</span>
+                <span><i class="flow-dot expense"></i><i class="fa-solid fa-arrow-up" style="color:var(--danger);"></i> Money Out</span>
               </div>
             </div>
             <div class="chart-container">
@@ -1767,6 +1767,7 @@
 
     let lastSuccessfulLoadAt = 0;
     let chartsFrame = 0;
+    let lastDashboardChartKey = "";
 
     // Avoid expensive Google Apps Script reads every time the browser regains focus.
     // Refresh at most once every 60 seconds while keeping the manual refresh button instant.
@@ -2347,7 +2348,7 @@
 
         return `<tr>
           <td>${escapeHtml(dateStr)}</td>
-          <td><span class="badge ${isIncome ? "income" : "expense"}"><span class="type-icon ${isIncome ? "income" : "expense"}"><i class="fa-solid ${isIncome ? "fa-arrow-down-left" : "fa-arrow-up-right"}"></i></span>${escapeHtml(item.type)}</span></td>
+          <td><span class="badge ${isIncome ? "income" : "expense"}"><span class="type-icon ${isIncome ? "income" : "expense"}"><i class="fa-solid ${isIncome ? "fa-arrow-down" : "fa-arrow-up"}"></i></span>${escapeHtml(item.type)}</span></td>
           <td>${escapeHtml(item.category || "")}</td>
           <td>${formatMoney(val)}</td>
           <td>${escapeHtml(item.notes || "")}</td>
@@ -2442,8 +2443,8 @@
 
     function getNoteIcon(type) {
       if (type === "Given Loan") return "fa-hand-holding-dollar";
-      if (type === "Repayment Received") return "fa-arrow-down-left";
-      if (type === "Repayment Sent") return "fa-arrow-up-right";
+      if (type === "Repayment Received") return "fa-arrow-down";
+      if (type === "Repayment Sent") return "fa-arrow-up";
       return "fa-arrow-right-arrow-left";
     }
 
@@ -2462,19 +2463,31 @@
     }
 
     function scheduleDashboardCharts(totals) {
+      const categoryKey = Object.entries(totals.categories).sort((a,b) => a[0].localeCompare(b[0]));
+      const key = JSON.stringify([roundCents(totals.totalInc), roundCents(totals.totalExp), categoryKey]);
+      if (key === lastDashboardChartKey && flowChartInstance && categoryChartInstance) return;
+      lastDashboardChartKey = key;
       cancelAnimationFrame(chartsFrame);
       chartsFrame = requestAnimationFrame(function() {
         chartsFrame = requestAnimationFrame(function() {
           if (document.getElementById("view-dashboard").classList.contains("active")) {
             updateCharts(totals.totalInc, totals.totalExp, totals.categories);
+          } else {
+            lastDashboardChartKey = "";
           }
         });
       });
     }
 
     function updateCharts(totalInc, totalExp, categories) {
+      if (typeof Chart === "undefined") return;
       const flowCanvas = document.getElementById("cashFlowChart");
       const catCanvas = document.getElementById("categoryChart");
+
+      if (!flowCanvas || !catCanvas || flowCanvas.clientWidth === 0 || catCanvas.clientWidth === 0) {
+        lastDashboardChartKey = "";
+        return;
+      }
 
       if (flowChartInstance) {
         flowChartInstance.destroy();
@@ -2812,14 +2825,27 @@
       document.getElementById("report-expense-sub").textContent =
         `Expenses ${formatMoney(report.standardExpense)} + given ${formatMoney(report.givenLoan)} + sent ${formatMoney(report.repaymentSent)}`;
 
-      document.getElementById("report-flow-caption").textContent =
-        getReportFlowSeries(meta).caption;
+      const flowCaption = document.getElementById("report-flow-caption");
+      if (flowCaption) {
+        flowCaption.textContent = getReportFlowSeries(meta).caption;
+      }
 
       updateReportCharts(meta, report);
       renderReportLoanSummary(report.loanTypes);
     }
 
     function updateReportCharts(meta, report) {
+      if (typeof Chart === "undefined") {
+        const retry = document.getElementById("report-chart-loading");
+        if (retry) retry.textContent = "Charts are still loading…";
+        setTimeout(() => {
+          if (document.getElementById("view-reports")?.classList.contains("active")) {
+            scheduleReportRender();
+          }
+        }, 300);
+        return;
+      }
+
       const flow = getReportFlowSeries(meta);
       const flowCanvas = document.getElementById("reportCashFlowChart");
       const categoryCanvas = document.getElementById("reportCategoryChart");
@@ -2943,7 +2969,8 @@
         </tr>`;
       });
 
-      document.getElementById("report-loan-summary-body").innerHTML = rows.join("");
+      const summaryBody = document.getElementById("report-loan-summary-body");
+      if (summaryBody) summaryBody.innerHTML = rows.join("");
     }
 
     function getReportRowsForPdf(meta, report) {
