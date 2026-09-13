@@ -293,7 +293,30 @@
 
     .tab-content.active {
       display: block;
-      animation: fadeIn .22s ease-out;
+      animation: pageEnter .42s cubic-bezier(.22,1,.36,1);
+    }
+
+    .tab-content.active .card,
+    .tab-content.active .chart-card,
+    .tab-content.active .data-table-container,
+    .tab-content.active .report-card,
+    .tab-content.active .settings-card {
+      animation: cardEnter .48s cubic-bezier(.22,1,.36,1) both;
+    }
+
+    .tab-content.active .card:nth-child(2),
+    .tab-content.active .chart-card:nth-child(2) { animation-delay: .05s; }
+    .tab-content.active .card:nth-child(3) { animation-delay: .10s; }
+    .tab-content.active .card:nth-child(4) { animation-delay: .15s; }
+
+    .icon-success, .icon-danger, .icon-primary, .icon-warning, .icon-info {
+      box-shadow: 0 6px 15px rgba(15,23,42,.07);
+      transition: transform .25s ease, box-shadow .25s ease;
+    }
+
+    .card:hover .card-icon {
+      transform: translateY(-2px) scale(1.06) rotate(-2deg);
+      box-shadow: 0 10px 20px rgba(15,23,42,.10);
     }
 
     .btn {
@@ -834,6 +857,98 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
+    @keyframes pageEnter {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes cardEnter {
+      from { opacity: 0; transform: translateY(12px) scale(.985); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    @keyframes rowEnter {
+      from { opacity: 0; transform: translateX(-8px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .data-table-container, .chart-card, .report-card, .settings-card, .card {
+      transition: transform .28s ease, box-shadow .28s ease, border-color .28s ease;
+    }
+
+    .data-table-container:hover, .chart-card:hover, .report-card:hover, .settings-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 18px 38px rgba(15,23,42,.08);
+    }
+
+    tbody tr {
+      animation: rowEnter .28s ease both;
+    }
+
+    tbody tr:nth-child(2) { animation-delay: .02s; }
+    tbody tr:nth-child(3) { animation-delay: .04s; }
+    tbody tr:nth-child(4) { animation-delay: .06s; }
+    tbody tr:nth-child(5) { animation-delay: .08s; }
+    tbody tr:nth-child(n+6) { animation-delay: .10s; }
+
+    .type-icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 6px;
+      flex: 0 0 auto;
+    }
+
+    .type-icon.income { background: #d1fae5; color: #047857; }
+    .type-icon.expense { background: #fee2e2; color: #b91c1c; }
+
+    .flow-legend {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      font-size: .72rem;
+      color: var(--text-muted);
+    }
+
+    .flow-legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .flow-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .flow-dot.income { background: var(--success); }
+    .flow-dot.expense { background: var(--danger); }
+
+    .category-legend-note {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: .72rem;
+      color: var(--text-muted);
+    }
+
+    .category-legend-note i { color: var(--primary); }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
     @media (max-width: 1020px) {
       .summary-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1087,8 +1202,11 @@
         <div class="charts-grid">
           <div class="chart-card">
             <div class="chart-title-row">
-              <h3>Cash Flow (In vs Out)</h3>
-              <span style="font-size:.72rem;color:var(--text-muted);">All records</span>
+              <h3><i class="fa-solid fa-arrow-right-arrow-left" style="margin-right:7px;color:var(--primary);"></i>Cash Flow (In vs Out)</h3>
+              <div class="flow-legend">
+                <span><i class="flow-dot income"></i><i class="fa-solid fa-arrow-down-left" style="color:var(--success);"></i> Income</span>
+                <span><i class="flow-dot expense"></i><i class="fa-solid fa-arrow-up-right" style="color:var(--danger);"></i> Expense</span>
+              </div>
             </div>
             <div class="chart-container">
               <canvas id="cashFlowChart"></canvas>
@@ -1097,8 +1215,8 @@
 
           <div class="chart-card">
             <div class="chart-title-row">
-              <h3>Expenses by Category</h3>
-              <span style="font-size:.72rem;color:var(--text-muted);">Standard expenses</span>
+              <h3><i class="fa-solid fa-layer-group" style="margin-right:7px;color:var(--primary);"></i>Expenses by Category</h3>
+              <span class="category-legend-note"><i class="fa-solid fa-circle-half-stroke"></i>Standard expenses</span>
             </div>
             <div class="chart-container">
               <canvas id="categoryChart"></canvas>
@@ -1272,8 +1390,11 @@
         <div class="charts-grid">
           <div class="chart-card">
             <div class="chart-title-row">
-              <h3>Income vs Money Out</h3>
-              <span style="font-size:.72rem;color:var(--text-muted);" id="report-flow-caption">By month</span>
+              <h3><i class="fa-solid fa-chart-line" style="margin-right:7px;color:var(--primary);"></i>Income vs Money Out</h3>
+              <div class="flow-legend">
+                <span><i class="flow-dot income"></i><i class="fa-solid fa-arrow-down-left" style="color:var(--success);"></i> Income</span>
+                <span><i class="flow-dot expense"></i><i class="fa-solid fa-arrow-up-right" style="color:var(--danger);"></i> Money Out</span>
+              </div>
             </div>
             <div class="chart-container">
               <canvas id="reportCashFlowChart"></canvas>
@@ -1282,8 +1403,8 @@
 
           <div class="chart-card">
             <div class="chart-title-row">
-              <h3>Transaction Categories</h3>
-              <span style="font-size:.72rem;color:var(--text-muted);">Standard transactions</span>
+              <h3><i class="fa-solid fa-tags" style="margin-right:7px;color:var(--primary);"></i>Transaction Categories</h3>
+              <span class="category-legend-note"><i class="fa-solid fa-palette"></i>Each category has its own color</span>
             </div>
             <div class="chart-container">
               <canvas id="reportCategoryChart"></canvas>
@@ -1559,6 +1680,7 @@
        ========================================================================= */
 
     const SCRIPT_URL ="https://script.google.com/macros/s/AKfycbyCm1R7rUFmp8pWKMvEug6KJZTbsomtZ5Z8iObUxdxOsI4n_xMcNZvi49G9SjUtytTA1Q/exec";
+
     const REQUEST_TIMEOUT_MS = 20000;
     const SESSION_KEY = "finance_tracker_session_v2";
     const USER_KEY = "finance_tracker_user_v2";
@@ -2134,7 +2256,7 @@
 
         return `<tr>
           <td>${escapeHtml(dateStr)}</td>
-          <td><span class="badge ${isIncome ? "income" : "expense"}"><i class="fa-solid ${isIncome ? "fa-arrow-down" : "fa-arrow-up"}" style="margin-right:5px;"></i>${escapeHtml(item.type)}</span></td>
+          <td><span class="badge ${isIncome ? "income" : "expense"}"><span class="type-icon ${isIncome ? "income" : "expense"}"><i class="fa-solid ${isIncome ? "fa-arrow-down-left" : "fa-arrow-up-right"}"></i></span>${escapeHtml(item.type)}</span></td>
           <td>${escapeHtml(item.category || "")}</td>
           <td>${formatMoney(val)}</td>
           <td>${escapeHtml(item.notes || "")}</td>
@@ -2238,6 +2360,16 @@
       return value ? String(value).split("T")[0] : "";
     }
 
+    const CATEGORY_PALETTE = [
+      "#4f46e5", "#06b6d4", "#10b981", "#f59e0b", "#ef4444",
+      "#8b5cf6", "#ec4899", "#14b8a6", "#f97316", "#84cc16",
+      "#0ea5e9", "#a855f7", "#eab308", "#dc2626", "#64748b"
+    ];
+
+    function getCategoryColors(count) {
+      return Array.from({ length: count }, (_, i) => CATEGORY_PALETTE[i % CATEGORY_PALETTE.length]);
+    }
+
     function updateCharts(totalInc, totalExp, categories) {
       const flowCanvas = document.getElementById("cashFlowChart");
       const catCanvas = document.getElementById("categoryChart");
@@ -2266,6 +2398,7 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          animation: { duration: 850, easing: "easeOutCubic" },
           plugins: {
             legend: { display: false }
           },
@@ -2285,8 +2418,9 @@
           labels: sortedCat.map(x => x[0]),
           datasets: [{
             data: sortedCat.map(x => x[1]),
-            backgroundColor: "#4f46e5",
-            borderRadius: 6,
+            backgroundColor: getCategoryColors(sortedCat.length),
+            borderRadius: 8,
+            borderSkipped: false,
             barThickness: 24
           }]
         },
@@ -2598,6 +2732,7 @@
           options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: { duration: 900, easing: "easeOutCubic" },
             interaction: { mode: "index", intersect: false },
             plugins: {
               legend: { display: true, position: "top" }
@@ -2620,13 +2755,16 @@
             labels: categoryEntries.map(x => x[0]),
             datasets: [{
               data: categoryEntries.map(x => x[1]),
+              backgroundColor: getCategoryColors(categoryEntries.length),
               borderWidth: 2,
-              borderColor: "#ffffff"
+              borderColor: "#ffffff",
+              hoverOffset: 10
             }]
           },
           options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: { duration: 900, easing: "easeOutCubic" },
             plugins: {
               legend: {
                 position: "right"
